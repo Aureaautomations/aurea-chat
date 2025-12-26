@@ -132,7 +132,7 @@
         sendBtn.disabled = true;
 
         try {
-          const res = await fetch("http://localhost:3000/chat", {
+          const res = await fetch("/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: text }),
@@ -146,7 +146,7 @@
             addMessage(data.reply, "bot");
           }
         } catch (err) {
-          addMessage("Could not reach the backend. Is it running on http://localhost:3000 ?", "bot");
+          addMessage("Could not reach the backend. Please try again in a moment.", "bot");
         } finally {
           sendBtn.disabled = false;
         }

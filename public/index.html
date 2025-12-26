@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aurea Widget v1</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 24px;
+      }
+
+      /* The widget box */
+      .chat-widget {
+        width: 360px;
+        max-width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .chat-header {
+        padding: 12px 14px;
+        border-bottom: 1px solid #eee;
+        font-weight: 700;
+      }
+
+      .chat-messages {
+        height: 360px;
+        padding: 12px;
+        overflow-y: auto;
+        background: #fafafa;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .msg {
+        max-width: 85%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        line-height: 1.35;
+        font-size: 14px;
+        white-space: pre-wrap;
+      }
+
+      .msg.user {
+        align-self: flex-end;
+        background: #111;
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
+
+      .msg.bot {
+        align-self: flex-start;
+        background: #fff;
+        border: 1px solid #eee;
+        border-bottom-left-radius: 4px;
+      }
+
+      .chat-input {
+        display: flex;
+        gap: 8px;
+        padding: 10px;
+        border-top: 1px solid #eee;
+        background: #fff;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+        outline: none;
+      }
+
+      button {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #111;
+        background: #111;
+        color: #fff;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+    <div class="chat-widget">
+      <div class="chat-header">Aurea</div>
+
+      <div id="messages" class="chat-messages">
+        <div class="msg bot">Hey! I’m Aurea. Type a message below.</div>
+      </div>
+
+      <form id="chatForm" class="chat-input">
+        <input id="chatInput" type="text" placeholder="Type a message..." autocomplete="off" />
+        <button id="sendBtn" type="submit">Send</button>
+      </form>
+    </div>
+
+    <script>
+      const messagesEl = document.getElementById("messages");
+      const formEl = document.getElementById("chatForm");
+      const inputEl = document.getElementById("chatInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      function addMessage(text, who) {
+        const div = document.createElement("div");
+        div.className = `msg ${who}`;
+        div.textContent = text;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      formEl.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        addMessage(text, "user");
+        inputEl.value = "";
+        inputEl.focus();
+
+        // simple “lock” while we wait
+        sendBtn.disabled = true;
+
+        try {
+          const res = await fetch("http://localhost:3000/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            addMessage(`Error: ${data?.error || "Request failed"}`, "bot");
+          } else {
+            addMessage(data.reply, "bot");
+          }
+        } catch (err) {
+          addMessage("Could not reach the backend. Is it running on http://localhost:3000 ?", "bot");
+        } finally {
+          sendBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

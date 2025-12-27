@@ -44,6 +44,11 @@
 
   const messagesEl = panel.querySelector("#aurea-messages");
   const inputEl = panel.querySelector("#aurea-input");
+// Force readable input text (some site builders override input styles)
+inputEl.style.color = "#111";
+inputEl.style.backgroundColor = "#fff";
+inputEl.style.webkitTextFillColor = "#111";
+
   const sendEl = panel.querySelector("#aurea-send");
 
   function add(role, text) {

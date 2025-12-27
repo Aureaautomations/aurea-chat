@@ -64,7 +64,27 @@
     });
     return saveHistory(history);
   }
-
+  function newConversationId() {
+    const id = generateConversationId();
+    localStorage.setItem(LS_KEYS.conversationId, id);
+    return id;
+  }
+  
+  function clearHistoryAndUI() {
+    // Clear storage
+    localStorage.removeItem(LS_KEYS.history);
+    newConversationId();
+  
+    // Clear UI
+    messagesEl.innerHTML = "";
+    historyRendered = false;
+  
+    // Show fresh greeting
+    add("assistant", GREETING);
+    pushToHistory("assistant", GREETING);
+    historyRendered = true;
+  }
+  
   // Ensure ID exists early
   getConversationId();
 
@@ -105,18 +125,31 @@
   panel.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
 
   panel.innerHTML = `
-    <div style="padding:12px 14px; border-bottom:1px solid #eee; font-weight:600;">${BUSINESS_NAME}</div>
+    <div style="padding:12px 14px; border-bottom:1px solid #eee; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+      <span>${BUSINESS_NAME}</span>
+      <button id="aurea-newchat" style="font-size:12px; padding:6px 8px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer;">
+        New
+      </button>
+    </div>
     <div id="aurea-messages" style="padding:12px 14px; height:310px; overflow:auto; font-size:14px;"></div>
     <div style="padding:10px; border-top:1px solid #eee; display:flex; gap:8px;">
       <input id="aurea-input" placeholder="Type a message..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:10px;" />
       <button id="aurea-send" style="padding:10px 12px; border-radius:10px; border:1px solid #111; background:#111; color:#fff;">Send</button>
     </div>
   `;
+
   document.body.appendChild(panel);
 
   const messagesEl = panel.querySelector("#aurea-messages");
   const inputEl = panel.querySelector("#aurea-input");
   const sendEl = panel.querySelector("#aurea-send");
+  
+  const newChatBtn = panel.querySelector("#aurea-newchat");
+  newChatBtn.onclick = (e) => {
+    e.stopPropagation();          // prevent accidental panel close
+    clearHistoryAndUI();          // handles storage + UI reset
+    setTimeout(() => inputEl.focus(), 0);
+  };
 
   // Force readable input text (some site builders override input styles)
   inputEl.style.color = "#111";

@@ -4,6 +4,11 @@
   window.__AUREA_WIDGET_VERSION__ = "0.1.0";
   console.log(`[Aurea Widget] loaded v${window.__AUREA_WIDGET_VERSION__}`);
 
+  const CONFIG = window.AUREA_CONFIG || {};
+  const BUSINESS_NAME = CONFIG.businessName || "Aurea";
+  const GREETING =
+  CONFIG.greeting || "Hey! I’m Aurea. How can I help?";
+
   const btn = document.createElement("button");
   btn.textContent = "Chat";
   btn.style.position = "fixed";
@@ -38,7 +43,7 @@
   panel.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
 
   panel.innerHTML = `
-    <div style="padding:12px 14px; border-bottom:1px solid #eee; font-weight:600;">Aurea</div>
+    <div style="padding:12px 14px; border-bottom:1px solid #eee; font-weight:600;">${BUSINESS_NAME}</div>
     <div id="aurea-messages" style="padding:12px 14px; height:310px; overflow:auto; font-size:14px;"></div>
     <div style="padding:10px; border-top:1px solid #eee; display:flex; gap:8px;">
       <input id="aurea-input" placeholder="Type a message..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:10px;" />
@@ -105,12 +110,39 @@ window.addEventListener(
     messagesEl.appendChild(wrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
+  function addTyping() {
+    const wrap = document.createElement("div");
+    wrap.id = "aurea-typing";
+    wrap.style.marginBottom = "10px";
+    wrap.style.display = "flex";
+    wrap.style.justifyContent = "flex-start";
+  
+    const bubble = document.createElement("div");
+    bubble.textContent = "Aurea is thinking…";
+    bubble.style.padding = "10px 12px";
+    bubble.style.borderRadius = "12px";
+    bubble.style.maxWidth = "85%";
+    bubble.style.background = "#f6f6f6";
+    bubble.style.color = "#777";
+    bubble.style.border = "1px solid #eee";
+    bubble.style.fontStyle = "italic";
+  
+    wrap.appendChild(bubble);
+    messagesEl.appendChild(wrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
 
+  function removeTyping() {
+    const typing = document.getElementById("aurea-typing");
+    if (typing) typing.remove();
+  }
+  
   async function send() {
     const text = inputEl.value.trim();
     if (!text) return;
     inputEl.value = "";
     add("user", text);
+    addTyping();
 
     try {
       const r = await fetch("https://chat.aureaautomations.com/chat", {
@@ -119,8 +151,10 @@ window.addEventListener(
         body: JSON.stringify({ message: text }),
       });
       const d = await r.json();
+      removeTyping();
       add("bot", d.reply || "No reply.");
     } catch {
+      removeTyping();
       add("bot", "Error. Try again.");
     }
   }
@@ -159,5 +193,5 @@ btn.onclick = () => {
   sendEl.onclick = send;
   inputEl.onkeydown = (e) => e.key === "Enter" && send();
 
-  add("bot", "Hey! I’m Aurea. How can I help?");
+  add("bot", GREETING);
 })();

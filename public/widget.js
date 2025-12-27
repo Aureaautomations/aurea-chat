@@ -1,6 +1,8 @@
 (function () {
   if (window.__AUREA_WIDGET_LOADED__) return;
   window.__AUREA_WIDGET_LOADED__ = true;
+  window.__AUREA_WIDGET_VERSION__ = "0.1.0";
+  console.log(`[Aurea Widget] loaded v${window.__AUREA_WIDGET_VERSION__}`);
 
   const btn = document.createElement("button");
   btn.textContent = "Chat";

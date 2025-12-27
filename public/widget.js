@@ -51,6 +51,36 @@ inputEl.style.webkitTextFillColor = "#111";
 
   const sendEl = panel.querySelector("#aurea-send");
 
+  // Some site builders hijack keyboard events.
+// This captures typing early and manually updates the input.
+window.addEventListener(
+  "keydown",
+  (e) => {
+    if (document.activeElement !== inputEl) return;
+
+    // allow shortcuts
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      send();
+      return;
+    }
+
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      inputEl.value = inputEl.value.slice(0, -1);
+      return;
+    }
+
+    if (e.key.length === 1) {
+      e.preventDefault();
+      inputEl.value += e.key;
+    }
+  },
+  true // capture phase
+);
+
   function add(role, text) {
     const wrap = document.createElement("div");
     wrap.style.marginBottom = "10px";

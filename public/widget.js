@@ -126,6 +126,14 @@ btn.onclick = () => {
     setTimeout(() => inputEl.focus(), 0);
   }
 };
+  document.addEventListener("mousedown", (e) => {
+  if (panel.style.display === "none") return;
+  const clickedInsidePanel = panel.contains(e.target);
+  const clickedButton = btn.contains(e.target);
+  if (!clickedInsidePanel && !clickedButton) {
+    panel.style.display = "none";
+  }
+});
   sendEl.onclick = send;
   inputEl.onkeydown = (e) => e.key === "Enter" && send();
 

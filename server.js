@@ -35,25 +35,65 @@ app.use((req, res, next) => {
 
 app.use(express.static("public"));
 
-// NEW: chat endpoint
+// helpers (put these above app.post, below middleware is fine)
+const HISTORY_LIMIT = 40;
+
+function sanitizeHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history
+    .filter(
+      (m) =>
+        m &&
+        (m.role === "user" || m.role === "assistant") &&
+        typeof m.content === "string" &&
+        m.content.trim().length > 0
+    )
+    .slice(-HISTORY_LIMIT)
+    .map((m) => ({
+      role: m.role,
+      content: m.content.trim(),
+    }));
+}
+
+// NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
     const userMessage = req.body?.message;
+    const conversationId = req.body?.conversationId; // optional for now
+    const history = sanitizeHistory(req.body?.history);
 
-    if (!userMessage) {
+    if (!userMessage || typeof userMessage !== "string" || !userMessage.trim()) {
       return res.status(400).json({ error: "Missing 'message' in request body" });
     }
 
-   const response = await openai.responses.create({
-  model: "gpt-4.1-mini",
-  instructions: AUREA_SYSTEM_PROMPT,
-  input: userMessage,
-});
+    // Build a message list from history.
+    // If the widget already included the latest user message in history, this is enough.
+    // If not (or history empty), we add it.
+    const inputMessages = [...history];
 
-    const aiReply = response.output_text;
+    const last = inputMessages[inputMessages.length - 1];
+    const latestTrimmed = userMessage.trim();
+
+    const historyAlreadyHasLatest =
+      last && last.role === "user" && last.content === latestTrimmed;
+
+    if (!historyAlreadyHasLatest) {
+      inputMessages.push({ role: "user", content: latestTrimmed });
+    }
+
+    const response = await openai.responses.create({
+      model: "gpt-4.1-mini",
+      instructions: AUREA_SYSTEM_PROMPT,
+      // OPTIONAL: give the model the conversationId as extra context (not required)
+      // metadata: { conversationId },
+      input: inputMessages,
+    });
+
+    const aiReply = response.output_text || "No reply.";
 
     return res.json({
       reply: aiReply,
+      conversationId: conversationId || null,
     });
   } catch (error) {
     console.error("OpenAI error:", error);

@@ -29,6 +29,9 @@
   panel.style.background = "#fff";
   panel.style.boxShadow = "0 10px 30px rgba(0,0,0,0.12)";
   panel.style.display = "none";
+  panel.style.opacity = "0";
+  panel.style.transform = "translateY(8px)";
+  panel.style.transition = "opacity 160ms ease, transform 160ms ease";
   panel.style.overflow = "hidden";
   panel.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
 
@@ -120,10 +123,23 @@ window.addEventListener(
     }
   }
 btn.onclick = () => {
-  const opening = panel.style.display === "none";
-  panel.style.display = opening ? "block" : "none";
-  if (opening) {
+  const isClosed = panel.style.display === "none";
+
+  if (isClosed) {
+    panel.style.display = "block";
+    // animate in on next frame
+    requestAnimationFrame(() => {
+      panel.style.opacity = "1";
+      panel.style.transform = "translateY(0)";
+    });
     setTimeout(() => inputEl.focus(), 0);
+  } else {
+    // animate out then hide
+    panel.style.opacity = "0";
+    panel.style.transform = "translateY(8px)";
+    setTimeout(() => {
+      panel.style.display = "none";
+    }, 170);
   }
 };
   document.addEventListener("mousedown", (e) => {
@@ -131,7 +147,11 @@ btn.onclick = () => {
   const clickedInsidePanel = panel.contains(e.target);
   const clickedButton = btn.contains(e.target);
   if (!clickedInsidePanel && !clickedButton) {
-    panel.style.display = "none";
+    panel.style.opacity = "0";
+    panel.style.transform = "translateY(8px)";
+    setTimeout(() => {
+      panel.style.display = "none";
+    }, 170);
   }
 });
   sendEl.onclick = send;

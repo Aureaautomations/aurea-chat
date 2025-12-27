@@ -118,7 +118,7 @@ window.addEventListener(
     wrap.style.justifyContent = "flex-start";
   
     const bubble = document.createElement("div");
-    bubble.textContent = "Aurea is thinking…";
+    bubble.textContent = `${(window.AUREA_CONFIG && window.AUREA_CONFIG.businessName) || "Aurea"} is thinking…`;
     bubble.style.padding = "10px 12px";
     bubble.style.borderRadius = "12px";
     bubble.style.maxWidth = "85%";

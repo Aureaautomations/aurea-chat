@@ -119,10 +119,13 @@ window.addEventListener(
       add("bot", "Error. Try again.");
     }
   }
-
-  btn.onclick = () => {
-    panel.style.display = panel.style.display === "none" ? "block" : "none";
-  };
+btn.onclick = () => {
+  const opening = panel.style.display === "none";
+  panel.style.display = opening ? "block" : "none";
+  if (opening) {
+    setTimeout(() => inputEl.focus(), 0);
+  }
+};
   sendEl.onclick = send;
   inputEl.onkeydown = (e) => e.key === "Enter" && send();
 

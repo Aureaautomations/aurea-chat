@@ -1,14 +1,76 @@
 (function () {
   if (window.__AUREA_WIDGET_LOADED__) return;
   window.__AUREA_WIDGET_LOADED__ = true;
-  window.__AUREA_WIDGET_VERSION__ = "0.1.0";
+
+  // bump version
+  window.__AUREA_WIDGET_VERSION__ = "0.2.0";
   console.log(`[Aurea Widget] loaded v${window.__AUREA_WIDGET_VERSION__}`);
 
   const CONFIG = window.AUREA_CONFIG || {};
   const BUSINESS_NAME = CONFIG.businessName || "Aurea";
-  const GREETING =
-  CONFIG.greeting || "Hey! I’m Aurea. How can I help?";
+  const GREETING = CONFIG.greeting || "Hey! I’m Aurea. How can I help?";
 
+  // -----------------------------
+  // Memory v1 (localStorage)
+  // -----------------------------
+  const LS_KEYS = {
+    conversationId: "aurea_conversation_id",
+    history: "aurea_chat_history_v1",
+  };
+
+  const HISTORY_LIMIT = 40; // total messages (user+assistant)
+
+  function safeJsonParse(value, fallback) {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function generateConversationId() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+    return "c_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+  }
+
+  function getConversationId() {
+    let id = localStorage.getItem(LS_KEYS.conversationId);
+    if (!id) {
+      id = generateConversationId();
+      localStorage.setItem(LS_KEYS.conversationId, id);
+    }
+    return id;
+  }
+
+  function loadHistory() {
+    const raw = localStorage.getItem(LS_KEYS.history);
+    const history = safeJsonParse(raw, []);
+    return Array.isArray(history) ? history : [];
+  }
+
+  function saveHistory(history) {
+    const trimmed = history.slice(-HISTORY_LIMIT);
+    localStorage.setItem(LS_KEYS.history, JSON.stringify(trimmed));
+    return trimmed;
+  }
+
+  function pushToHistory(role, content) {
+    const history = loadHistory();
+    history.push({
+      role, // "user" | "assistant"
+      content: String(content ?? ""),
+      ts: Date.now(),
+    });
+    return saveHistory(history);
+  }
+
+  // Ensure ID exists early
+  getConversationId();
+
+  // -----------------------------
+  // UI
+  // -----------------------------
   const btn = document.createElement("button");
   btn.textContent = "Chat";
   btn.style.position = "fixed";
@@ -54,71 +116,77 @@
 
   const messagesEl = panel.querySelector("#aurea-messages");
   const inputEl = panel.querySelector("#aurea-input");
-// Force readable input text (some site builders override input styles)
-inputEl.style.color = "#111";
-inputEl.style.backgroundColor = "#fff";
-inputEl.style.webkitTextFillColor = "#111";
-
   const sendEl = panel.querySelector("#aurea-send");
 
+  // Force readable input text (some site builders override input styles)
+  inputEl.style.color = "#111";
+  inputEl.style.backgroundColor = "#fff";
+  inputEl.style.webkitTextFillColor = "#111";
+
   // Some site builders hijack keyboard events.
-// This captures typing early and manually updates the input.
-window.addEventListener(
-  "keydown",
-  (e) => {
-    if (document.activeElement !== inputEl) return;
+  // This captures typing early and manually updates the input.
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      if (document.activeElement !== inputEl) return;
 
-    // allow shortcuts
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // allow shortcuts
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-    if (e.key === "Enter") {
-      e.preventDefault();
-      send();
-      return;
-    }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        send();
+        return;
+      }
 
-    if (e.key === "Backspace") {
-      e.preventDefault();
-      inputEl.value = inputEl.value.slice(0, -1);
-      return;
-    }
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        inputEl.value = inputEl.value.slice(0, -1);
+        return;
+      }
 
-    if (e.key.length === 1) {
-      e.preventDefault();
-      inputEl.value += e.key;
-    }
-  },
-  true // capture phase
-);
+      if (e.key.length === 1) {
+        e.preventDefault();
+        inputEl.value += e.key;
+      }
+    },
+    true // capture phase
+  );
 
   function add(role, text) {
+    // Normalize role names for UI
+    const isUser = role === "user";
     const wrap = document.createElement("div");
     wrap.style.marginBottom = "10px";
     wrap.style.display = "flex";
-    wrap.style.justifyContent = role === "user" ? "flex-end" : "flex-start";
+    wrap.style.justifyContent = isUser ? "flex-end" : "flex-start";
 
     const bubble = document.createElement("div");
     bubble.textContent = text;
     bubble.style.padding = "10px 12px";
     bubble.style.borderRadius = "12px";
     bubble.style.maxWidth = "85%";
-    bubble.style.background = role === "user" ? "#111" : "#f6f6f6";
-    bubble.style.color = role === "user" ? "#fff" : "#111";
+    bubble.style.background = isUser ? "#111" : "#f6f6f6";
+    bubble.style.color = isUser ? "#fff" : "#111";
     bubble.style.border = "1px solid #eee";
 
     wrap.appendChild(bubble);
     messagesEl.appendChild(wrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
+
   function addTyping() {
+    // prevent duplicates
+    if (messagesEl.querySelector("#aurea-typing")) return;
+
     const wrap = document.createElement("div");
     wrap.id = "aurea-typing";
     wrap.style.marginBottom = "10px";
     wrap.style.display = "flex";
     wrap.style.justifyContent = "flex-start";
-  
+
     const bubble = document.createElement("div");
-    bubble.textContent = `${(window.AUREA_CONFIG && window.AUREA_CONFIG.businessName) || "Aurea"} is thinking…`;
+    bubble.textContent = `${BUSINESS_NAME} is thinking…`;
     bubble.style.padding = "10px 12px";
     bubble.style.borderRadius = "12px";
     bubble.style.maxWidth = "85%";
@@ -126,72 +194,124 @@ window.addEventListener(
     bubble.style.color = "#777";
     bubble.style.border = "1px solid #eee";
     bubble.style.fontStyle = "italic";
-  
+
     wrap.appendChild(bubble);
     messagesEl.appendChild(wrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   function removeTyping() {
-    const typing = document.getElementById("aurea-typing");
+    const typing = messagesEl.querySelector("#aurea-typing");
     if (typing) typing.remove();
   }
-  
+
+  let historyRendered = false;
+
+  function renderHistoryIntoUI() {
+    if (historyRendered) return;
+    const history = loadHistory();
+    if (!history.length) return;
+
+    historyRendered = true;
+
+    history.forEach((m) => {
+      if (!m || typeof m.content !== "string") return;
+      if (m.role === "user") add("user", m.content);
+      if (m.role === "assistant") add("assistant", m.content);
+    });
+  }
+
   async function send() {
     const text = inputEl.value.trim();
     if (!text) return;
+
     inputEl.value = "";
+
+    // Show in UI + persist
     add("user", text);
+    pushToHistory("user", text);
+
     addTyping();
 
     try {
+      const conversationId = getConversationId();
+      const history = loadHistory(); // includes the user message we just pushed
+
       const r = await fetch("https://chat.aureaautomations.com/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          conversationId,
+          message: text,
+          history,
+          meta: {
+            businessName: BUSINESS_NAME,
+            pageUrl: window.location.href,
+            pageTitle: document.title,
+          },
+        }),
       });
+
       const d = await r.json();
       removeTyping();
-      add("bot", d.reply || "No reply.");
+
+      const reply = d.reply || "No reply.";
+      add("assistant", reply);
+      pushToHistory("assistant", reply);
     } catch {
       removeTyping();
-      add("bot", "Error. Try again.");
+      add("assistant", "Error. Try again.");
+      pushToHistory("assistant", "Error. Try again.");
     }
   }
-btn.onclick = () => {
-  const isClosed = panel.style.display === "none";
 
-  if (isClosed) {
-    panel.style.display = "block";
-    // animate in on next frame
-    requestAnimationFrame(() => {
-      panel.style.opacity = "1";
-      panel.style.transform = "translateY(0)";
-    });
-    setTimeout(() => inputEl.focus(), 0);
-  } else {
-    // animate out then hide
-    panel.style.opacity = "0";
-    panel.style.transform = "translateY(8px)";
-    setTimeout(() => {
-      panel.style.display = "none";
-    }, 170);
-  }
-};
+  btn.onclick = () => {
+    const isClosed = panel.style.display === "none";
+
+    if (isClosed) {
+      panel.style.display = "block";
+      requestAnimationFrame(() => {
+        panel.style.opacity = "1";
+        panel.style.transform = "translateY(0)";
+      });
+
+      // Render history (or greeting) when opened
+      const history = loadHistory();
+      if (history.length) {
+        renderHistoryIntoUI();
+      } else {
+        // Only greet once and persist it
+        add("assistant", GREETING);
+        pushToHistory("assistant", GREETING);
+        historyRendered = true; // prevents later renderHistory from duplicating
+      }
+
+      setTimeout(() => inputEl.focus(), 0);
+    } else {
+      panel.style.opacity = "0";
+      panel.style.transform = "translateY(8px)";
+      setTimeout(() => {
+        panel.style.display = "none";
+      }, 170);
+    }
+  };
+
   document.addEventListener("mousedown", (e) => {
-  if (panel.style.display === "none") return;
-  const clickedInsidePanel = panel.contains(e.target);
-  const clickedButton = btn.contains(e.target);
-  if (!clickedInsidePanel && !clickedButton) {
-    panel.style.opacity = "0";
-    panel.style.transform = "translateY(8px)";
-    setTimeout(() => {
-      panel.style.display = "none";
-    }, 170);
-  }
-});
+    if (panel.style.display === "none") return;
+    const clickedInsidePanel = panel.contains(e.target);
+    const clickedButton = btn.contains(e.target);
+    if (!clickedInsidePanel && !clickedButton) {
+      panel.style.opacity = "0";
+      panel.style.transform = "translateY(8px)";
+      setTimeout(() => {
+        panel.style.display = "none";
+      }, 170);
+    }
+  });
+
   sendEl.onclick = send;
   inputEl.onkeydown = (e) => e.key === "Enter" && send();
 
-  add("bot", GREETING);
+  // Note: we no longer auto-add greeting on load.
+  // It now happens on first open, and only once.
 })();

@@ -11,6 +11,76 @@
   const GREETING = CONFIG.greeting || "Hey! I’m Aurea. How can I help?";
 
   // -----------------------------
+  // Site context (Phase 1 v1)
+  // -----------------------------
+  function getSiteContextV1() {
+    try {
+      const origin = window.location.origin;
+
+      const title = document.title || "";
+      const metaDesc =
+        document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
+
+      const headings = Array.from(document.querySelectorAll("h1, h2, h3"))
+        .slice(0, 30)
+        .map((el) => (el.textContent || "").trim())
+        .filter(Boolean);
+
+      const navRoot =
+        document.querySelector("nav") ||
+        document.querySelector("header") ||
+        document.body;
+
+      const navLinks = Array.from(navRoot.querySelectorAll("a"))
+        .slice(0, 30)
+        .map((a) => ({
+          text: (a.textContent || "").trim().slice(0, 80),
+          href: (a.getAttribute("href") || "").trim().slice(0, 300),
+        }))
+        .filter((l) => l.text && l.href);
+
+      const jsonLd = Array.from(
+        document.querySelectorAll('script[type="application/ld+json"]')
+      )
+        .slice(0, 5)
+        .map((s) => (s.textContent || "").trim())
+        .filter(Boolean);
+
+      const main =
+        document.querySelector("main") ||
+        document.querySelector("[role='main']") ||
+        document.body;
+
+      const rawText = (main.innerText || "").replace(/\s+/g, " ").trim();
+      const textSample = rawText.slice(0, 2500);
+
+      return {
+        origin,
+        url: window.location.href,
+        title,
+        metaDesc,
+        headings,
+        navLinks,
+        jsonLd,
+        textSample,
+        collectedAt: new Date().toISOString(),
+        v: 1,
+      };
+    } catch {
+      return {
+        origin: window.location.origin,
+        url: window.location.href,
+        collectedAt: new Date().toISOString(),
+        v: 1,
+        error: "context_collection_failed",
+      };
+    }
+  }
+
+
+  
+
+  // -----------------------------
   // Memory v1 (localStorage)
   // -----------------------------
   const LS_KEYS = {
@@ -270,6 +340,8 @@
       const conversationId = getConversationId();
       const history = loadHistory(); // includes the user message we just pushed
 
+      const siteContext = getSiteContextV1();
+      
       const r = await fetch("https://chat.aureaautomations.com/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

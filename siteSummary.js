@@ -1,5 +1,5 @@
 // siteSummary.js
-import crypto from "crypto";
+const crypto = require("crypto");
 
 // Simple in-memory cache (resets when Render restarts)
 const SITE_CACHE = new Map();
@@ -17,7 +17,7 @@ function sha256(input) {
   return crypto.createHash("sha256").update(input || "", "utf8").digest("hex");
 }
 
-export function getSiteKey(meta) {
+function getSiteKey(meta) {
   const url = meta?.pageUrl;
   if (!url) return null;
 
@@ -29,12 +29,12 @@ export function getSiteKey(meta) {
   }
 }
 
-export function hashSiteContext(siteContext) {
+function hashSiteContext(siteContext) {
   const trimmed = safeTrimContext(siteContext);
   return sha256(trimmed);
 }
 
-export function getCachedSummary(siteKey, contextHash) {
+function getCachedSummary(siteKey, contextHash) {
   if (!siteKey) return null;
 
   const hit = SITE_CACHE.get(siteKey);
@@ -47,7 +47,7 @@ export function getCachedSummary(siteKey, contextHash) {
   return hit.summary;
 }
 
-export function setCachedSummary(siteKey, contextHash, summary) {
+function setCachedSummary(siteKey, contextHash, summary) {
   if (!siteKey || !summary) return;
   SITE_CACHE.set(siteKey, {
     summary,
@@ -57,10 +57,9 @@ export function setCachedSummary(siteKey, contextHash, summary) {
 }
 
 // Placeholder: we’ll wire OpenAI in the next step
-export async function summarizeSiteContext({ siteKey, siteContext }) {
+async function summarizeSiteContext({ siteKey, siteContext }) {
   const trimmed = safeTrimContext(siteContext);
 
-  // For now return a dummy summary so we can test wiring + caching
   return {
     businessName: null,
     shortDescription: null,
@@ -77,3 +76,11 @@ export async function summarizeSiteContext({ siteKey, siteContext }) {
     _debug: { siteKey, contextChars: trimmed.length },
   };
 }
+
+module.exports = {
+  getSiteKey,
+  hashSiteContext,
+  getCachedSummary,
+  setCachedSummary,
+  summarizeSiteContext,
+};

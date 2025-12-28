@@ -3,6 +3,15 @@ require("dotenv").config();
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ✅ Site context summarization + cache (backend)
+const {
+  getSiteKey,
+  hashSiteContext,
+  getCachedSummary,
+  setCachedSummary,
+  summarizeSiteContext,
+} = require("./siteSummary.js");
+
 const express = require("express");
 const app = express();
 const PORT = 3000;
@@ -62,6 +71,24 @@ app.post("/chat", async (req, res) => {
     const conversationId = req.body?.conversationId; // optional for now
     const history = sanitizeHistory(req.body?.history);
 
+    // ✅ pull site context from widget payload
+    const siteContext = req.body?.siteContext;
+    const meta = req.body?.meta;
+    
+    // ✅ compute site key + context hash
+    const siteKey = getSiteKey(meta);
+    const contextHash = hashSiteContext(siteContext);
+    
+    // ✅ get or create cached business summary
+    let businessSummary = getCachedSummary(siteKey, contextHash);
+    const summaryWasCached = !!businessSummary;
+    
+    if (!businessSummary) {
+      businessSummary = await summarizeSiteContext({ siteKey, siteContext });
+      setCachedSummary(siteKey, contextHash, businessSummary);
+    }
+
+    
     if (!userMessage || typeof userMessage !== "string" || !userMessage.trim()) {
       return res.status(400).json({ error: "Missing 'message' in request body" });
     }
@@ -83,7 +110,11 @@ app.post("/chat", async (req, res) => {
 
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
-      instructions: AUREA_SYSTEM_PROMPT,
+      instructions:
+        AUREA_SYSTEM_PROMPT +
+        "\n\nBusiness Summary (from the website the widget is embedded on):\n" +
+        JSON.stringify(businessSummary),
+
       // OPTIONAL: give the model the conversationId as extra context (not required)
       // metadata: { conversationId },
       input: inputMessages,
@@ -94,7 +125,14 @@ app.post("/chat", async (req, res) => {
     return res.json({
       reply: aiReply,
       conversationId: conversationId || null,
+      siteDebug: {
+        siteKey,
+        summaryWasCached,
+        summaryConfidence: businessSummary?.confidence ?? null,
+        contextChars: businessSummary?._debug?.contextChars ?? null,
+      },
     });
+
   } catch (error) {
     console.error("OpenAI error:", error);
     return res.status(500).json({

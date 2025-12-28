@@ -31,6 +31,10 @@ function getSiteKey(meta) {
 
 function hashSiteContext(siteContext) {
   const trimmed = safeTrimContext(siteContext);
+  console.log("[siteSummary] PLACEHOLDER summarizeSiteContext()", {
+  siteKey,
+  contextChars: trimmed.length,
+});
   return sha256(trimmed);
 }
 
@@ -56,9 +60,13 @@ function setCachedSummary(siteKey, contextHash, summary) {
   });
 }
 
-// Placeholder: we’ll wire OpenAI in the next step
 async function summarizeSiteContext({ siteKey, siteContext }) {
   const trimmed = safeTrimContext(siteContext);
+
+  console.log("[siteSummary] PLACEHOLDER summarizeSiteContext()", {
+    siteKey,
+    contextChars: trimmed.length,
+  });
 
   return {
     businessName: null,

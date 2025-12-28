@@ -31,10 +31,6 @@ function getSiteKey(meta) {
 
 function hashSiteContext(siteContext) {
   const trimmed = safeTrimContext(siteContext);
-  console.log("[siteSummary] PLACEHOLDER summarizeSiteContext()", {
-  siteKey,
-  contextChars: trimmed.length,
-});
   return sha256(trimmed);
 }
 

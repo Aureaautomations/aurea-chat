@@ -349,6 +349,7 @@
           conversationId,
           message: text,
           history,
+          siteContext, // ✅ ADD THIS LINE (right above meta is perfect)
           meta: {
             businessName: BUSINESS_NAME,
             pageUrl: window.location.href,

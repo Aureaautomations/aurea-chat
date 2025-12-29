@@ -34,16 +34,15 @@ function hashSiteContext(siteContext) {
   return sha256(trimmed);
 }
 
-function getCachedSummary(siteKey, contextHash) {
+function getCachedSummary(siteKey) {
   if (!siteKey) return null;
 
   const hit = SITE_CACHE.get(siteKey);
   if (!hit) return null;
 
   const isExpired = Date.now() - hit.updatedAt > CACHE_TTL_MS;
-  const hashChanged = hit.contextHash !== contextHash;
+  if (isExpired) return null;
 
-  if (isExpired || hashChanged) return null;
   return hit.summary;
 }
 

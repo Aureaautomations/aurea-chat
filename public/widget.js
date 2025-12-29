@@ -10,6 +10,9 @@
   const BUSINESS_NAME = CONFIG.businessName || "Aurea";
   const GREETING = CONFIG.greeting || "Hey! I’m Aurea. How can I help?";
 
+  let __aurea_sitewide_cache = null;
+  let __aurea_sitewide_cache_at = 0;
+
   // -----------------------------
   // Site context (Phase 1 v1)
   // -----------------------------
@@ -77,8 +80,170 @@
     }
   }
 
+  // --- Site-wide context (v2) ---
+// Keep v1 exactly as-is. v2 uses v1 + fetches a few key internal pages.
 
+function normalizeUrl(href) {
+  try {
+    return new URL(href, window.location.href);
+  } catch {
+    return null;
+  }
+}
+
+function isFetchableInternalUrl(urlObj) {
+  if (!urlObj) return false;
+
+  // Must be same website (same origin)
+  if (urlObj.origin !== window.location.origin) return false;
+
+  // Skip hashes, mailto, tel, javascript, files we don't want
+  const href = urlObj.href;
+  if (href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("javascript:")) return false;
+  if (urlObj.pathname.match(/\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|mp4|mp3)$/i)) return false;
+
+  return true;
+}
+
+function scoreLink(urlObj, text) {
+  const t = (text || "").toLowerCase();
+  const p = (urlObj?.pathname || "").toLowerCase();
+
+  const hay = `${t} ${p}`;
+
+  // These are the pages that usually contain the "business facts"
+  const keywords = [
+    "pricing", "price", "rates", "packages",
+    "services", "service",
+    "book", "booking", "appointments", "schedule",
+    "contact", "about",
+    "faq", "policies", "policy",
+    "hours", "location"
+  ];
+
+  let score = 0;
+  for (const k of keywords) {
+    if (hay.includes(k)) score += 10;
+  }
+
+  // Prefer shorter paths (usually more important)
+  score += Math.max(0, 10 - p.split("/").filter(Boolean).length);
+
+  return score;
+}
+
+function extractPageTextFromDocument(doc) {
+  const title = doc.title || "";
+  const metaDesc =
+    doc.querySelector('meta[name="description"]')?.getAttribute("content") || "";
+
+  const headings = Array.from(doc.querySelectorAll("h1, h2, h3"))
+    .slice(0, 30)
+    .map((el) => (el.textContent || "").trim())
+    .filter(Boolean);
+
+  const main =
+    doc.querySelector("main") ||
+    doc.querySelector("[role='main']") ||
+    doc.body;
+
+  const rawText = (main?.innerText || "").replace(/\s+/g, " ").trim();
+  const textSample = rawText.slice(0, 2000); // keep each fetched page small
+
+  return { title, metaDesc, headings, textSample };
+}
+
+async function fetchInternalPageContext(url, timeoutMs = 2500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+      signal: controller.signal,
+      headers: {
+        // Helps some servers return normal HTML
+        "Accept": "text/html,application/xhtml+xml"
+      }
+    });
+
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) return null;
+
+    const html = await res.text();
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    const extracted = extractPageTextFromDocument(doc);
+
+    return {
+      url,
+      ...extracted
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
   
+async function getSiteContextV2() {
+  // Start with the current page snapshot (your existing working logic)
+  const base = getSiteContextV1();
+
+  try {
+    const MAX_PAGES = 8;
+
+    // Collect candidates from navLinks + also any obvious footer links if available
+    const candidates = [];
+
+    // From v1 navLinks
+    for (const l of base.navLinks || []) {
+      const urlObj = normalizeUrl(l.href);
+      if (!isFetchableInternalUrl(urlObj)) continue;
+      candidates.push({ urlObj, text: l.text || "" });
+    }
+
+    // Sort by importance (pricing/services/book/contact/etc)
+    candidates.sort((a, b) => scoreLink(b.urlObj, b.text) - scoreLink(a.urlObj, a.text));
+
+    // Deduplicate by pathname
+    const seen = new Set();
+    const picked = [];
+    for (const c of candidates) {
+      const key = c.urlObj.pathname.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      // Skip the current page (we already have it)
+      if (c.urlObj.href === window.location.href) continue;
+
+      picked.push(c.urlObj.href);
+      if (picked.length >= MAX_PAGES) break;
+    }
+
+    // Fetch in parallel, then filter failures
+    const fetched = await Promise.all(picked.map((u) => fetchInternalPageContext(u)));
+    const extraPages = fetched.filter(Boolean);
+
+    return {
+      ...base,
+      extraPages,
+      v: 2
+    };
+  } catch {
+    return {
+      ...base,
+      v: 2,
+      extraPages: [],
+      error: "sitewide_context_failed"
+    };
+  }
+}
 
   // -----------------------------
   // Memory v1 (localStorage)
@@ -141,15 +306,15 @@
   }
   
   function clearHistoryAndUI() {
-    // Clear storage
     localStorage.removeItem(LS_KEYS.history);
     newConversationId();
   
-    // Clear UI
+    __aurea_sitewide_cache = null;
+    __aurea_sitewide_cache_at = 0;
+  
     messagesEl.innerHTML = "";
     historyRendered = false;
   
-    // Show fresh greeting
     add("assistant", GREETING);
     pushToHistory("assistant", GREETING);
     historyRendered = true;
@@ -340,8 +505,17 @@
       const conversationId = getConversationId();
       const history = loadHistory(); // includes the user message we just pushed
 
-      const siteContext = getSiteContextV1();
+      let siteContext = null;
+      const CACHE_MS = 5 * 60 * 1000;
       
+      if (__aurea_sitewide_cache && (Date.now() - __aurea_sitewide_cache_at) < CACHE_MS) {
+        siteContext = __aurea_sitewide_cache;
+      } else {
+        siteContext = await getSiteContextV2();
+        __aurea_sitewide_cache = siteContext;
+        __aurea_sitewide_cache_at = Date.now();
+      }
+  
       const r = await fetch("https://chat.aureaautomations.com/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -357,6 +531,14 @@
           },
         }),
       });
+
+      if (!r.ok) {
+        removeTyping();
+        add("assistant", "Sorry, something went wrong on the server. Please try again.");
+        pushToHistory("assistant", "Sorry, something went wrong on the server. Please try again.");
+        return;
+      }
+    }
 
       const d = await r.json();
       removeTyping();
@@ -416,8 +598,6 @@
   });
 
   sendEl.onclick = send;
-  inputEl.onkeydown = (e) => e.key === "Enter" && send();
-
   // Note: we no longer auto-add greeting on load.
   // It now happens on first open, and only once.
 })();

@@ -85,7 +85,7 @@ app.post("/chat", async (req, res) => {
     
     if (!businessSummary) {
       businessSummary = await summarizeSiteContext({ siteKey, siteContext });
-      setCachedSummary(siteKey, contextHash, businessSummary);
+      setCachedSummary(siteKey, businessSummary);
     }
 
     

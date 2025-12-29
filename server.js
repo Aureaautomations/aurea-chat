@@ -80,7 +80,7 @@ app.post("/chat", async (req, res) => {
     const contextHash = hashSiteContext(siteContext);
     
     // ✅ get or create cached business summary
-    let businessSummary = getCachedSummary(siteKey, contextHash);
+    let businessSummary = getCachedSummary(siteKey);
     const summaryWasCached = !!businessSummary;
     
     if (!businessSummary) {

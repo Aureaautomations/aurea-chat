@@ -126,6 +126,98 @@ Rules:
 - If booking URL isn't visible, set booking.url=null and include "booking" in missingFields.
 `;
 
+  const SITE_SUMMARY_JSON_SCHEMA = {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      businessName: { type: ["string", "null"] },
+      shortDescription: { type: ["string", "null"] },
+
+      services: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            name: { type: "string" },
+            description: { type: ["string", "null"] },
+            duration: { type: ["string", "null"] },
+          },
+          required: ["name", "description", "duration"],
+        },
+      },
+
+      pricing: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            item: { type: "string" },
+            price: { type: "string" },
+            notes: { type: ["string", "null"] },
+          },
+          required: ["item", "price", "notes"],
+        },
+      },
+
+      hours: { type: ["string", "null"] },
+
+      booking: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          method: { type: ["string", "null"] },
+          url: { type: ["string", "null"] },
+        },
+        required: ["method", "url"],
+      },
+
+      locations: { type: "array", items: { type: "string" } },
+      policies: { type: "array", items: { type: "string" } },
+
+      contact: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          phone: { type: ["string", "null"] },
+          email: { type: ["string", "null"] },
+        },
+        required: ["phone", "email"],
+      },
+
+      importantLinks: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            label: { type: "string" },
+            url: { type: "string" },
+          },
+          required: ["label", "url"],
+        },
+      },
+
+      confidence: { type: "string", enum: ["high", "medium", "low"] },
+      missingFields: { type: "array", items: { type: "string" } },
+    },
+    required: [
+      "businessName",
+      "shortDescription",
+      "services",
+      "pricing",
+      "hours",
+      "booking",
+      "locations",
+      "policies",
+      "contact",
+      "importantLinks",
+      "confidence",
+      "missingFields",
+    ],
+  };
+
   const input = [
     {
       role: "system",
@@ -152,10 +244,17 @@ Rules:
       body: JSON.stringify({
         model: "gpt-4.1-mini",
         input,
-        // Keep it deterministic-ish for extraction
         temperature: 0.2,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "SiteSummary",
+            schema: SITE_SUMMARY_JSON_SCHEMA,
+            strict: true,
+          },
+        },
       }),
-    });
+
 
     if (!r.ok) {
       const errText = await r.text();
@@ -186,9 +285,8 @@ Rules:
 
     // Responses API returns text in output_text on many SDKs,
     // but in raw HTTP you can safely rebuild from output items.
-    const text =
-      (data.output_text && String(data.output_text)) ||
-      JSON.stringify(data);
+    const text = (data.output_text && String(data.output_text)) || "";
+
 
     // Try to locate JSON in the text and parse it
     const firstBrace = text.indexOf("{");

@@ -85,9 +85,17 @@ app.post("/chat", async (req, res) => {
     
     if (!businessSummary) {
       businessSummary = await summarizeSiteContext({ siteKey, siteContext });
-      setCachedSummary(siteKey, businessSummary);
+    
+      // Only cache successful summaries (avoid poisoning cache with failures)
+      if (businessSummary && businessSummary._debug?.usedOpenAI && !businessSummary._debug?.error) {
+        setCachedSummary(siteKey, businessSummary);
+      } else {
+        console.log("[siteSummary] not caching due to error", {
+          siteKey,
+          error: businessSummary?._debug?.error || "unknown",
+        });
+      }
     }
-
     
     if (!userMessage || typeof userMessage !== "string" || !userMessage.trim()) {
       return res.status(400).json({ error: "Missing 'message' in request body" });

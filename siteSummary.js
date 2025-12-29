@@ -23,7 +23,7 @@ function getSiteKey(meta) {
 
   try {
     const u = new URL(url);
-    return u.origin + u.pathname; // e.g. https://aureaautomations.com/pricing
+    return u.origin; // e.g. https://aureaautomations.com
   } catch {
     return null;
   }

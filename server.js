@@ -148,10 +148,14 @@ app.post("/chat", async (req, res) => {
       reply: aiReply,
       conversationId: conversationId || null,
       siteDebug: {
+        buildTag: "debug-v1", // <--- add this line
+      
         siteKey,
         summaryWasCached,
         summaryConfidence: businessSummary?.confidence ?? null,
         contextChars: businessSummary?._debug?.contextChars ?? null,
+      },
+
       
         // TEMP: prove what the model is seeing
         pricing: businessSummary?.pricing ?? null,

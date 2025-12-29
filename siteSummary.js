@@ -122,8 +122,8 @@ Return ONLY valid JSON with this exact shape:
 }
 Rules:
 - Use exact text you can see. Do not guess.
-- If pricing isn't visible, set pricing=[] and include "pricing" in missingFields.
-- If booking URL isn't visible, set booking.url=null and include "booking" in missingFields.
+- If information is not visible, still return the field with null or empty arrays as appropriate.
+- Never omit required fields.
 `;
 
   const SITE_SUMMARY_JSON_SCHEMA = {
@@ -266,10 +266,12 @@ Rules:
 
     const data = await r.json();
 
-    const raw = String(data?.output_text || "").trim();
+    const raw =
+      String(data?.output_text || "").trim() ||
+      String(data?.output?.[0]?.content?.[0]?.text || "").trim();
 
     if (!raw) {
-      throw new Error("[siteSummary] Schema violation: empty output_text from model");
+      throw new Error("[siteSummary] Schema violation: empty model text output");
     }
 
     let result;

@@ -538,7 +538,6 @@ async function getSiteContextV2() {
         pushToHistory("assistant", "Sorry, something went wrong on the server. Please try again.");
         return;
       }
-    }
 
       const d = await r.json();
       removeTyping();

@@ -254,7 +254,7 @@ Rules:
           },
         },
       }),
-
+    });
 
     if (!r.ok) {
       const errText = await r.text();
@@ -282,6 +282,7 @@ Rules:
     }
 
     const data = await r.json();
+
 
     // Responses API returns text in output_text on many SDKs,
     // but in raw HTTP you can safely rebuild from output items.

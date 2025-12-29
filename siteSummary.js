@@ -46,11 +46,11 @@ function getCachedSummary(siteKey) {
   return hit.summary;
 }
 
-function setCachedSummary(siteKey, contextHash, summary) {
-  if (!siteKey || !summary) return;
+function setCachedSummary(siteKey, summary) {
+  if (!siteKey) return;
+
   SITE_CACHE.set(siteKey, {
     summary,
-    contextHash,
     updatedAt: Date.now(),
   });
 }

@@ -152,9 +152,14 @@ app.post("/chat", async (req, res) => {
         summaryWasCached,
         summaryConfidence: businessSummary?.confidence ?? null,
         contextChars: businessSummary?._debug?.contextChars ?? null,
+      
+        // TEMP: prove what the model is seeing
+        pricing: businessSummary?.pricing ?? null,
+        bookingUrl: businessSummary?.bookingUrl ?? null,
+        services: businessSummary?.services ?? null,
       },
     });
-
+    
   } catch (error) {
     console.error("OpenAI error:", error);
     return res.status(500).json({

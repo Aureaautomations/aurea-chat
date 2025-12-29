@@ -45,6 +45,12 @@ function hashSiteContext(siteContext) {
 function getCachedSummary(siteKey) {
   if (!siteKey) return null;
 
+  console.log("[siteSummary] cache lookup", {
+  siteKey,
+  hasKey: SITE_CACHE.has(siteKey),
+  cacheSize: SITE_CACHE.size,
+});
+  
   const hit = SITE_CACHE.get(siteKey);
   if (!hit) return null;
 
@@ -61,6 +67,11 @@ function setCachedSummary(siteKey, summary) {
     summary,
     updatedAt: Date.now(),
   });
+
+  console.log("[siteSummary] cache set", {
+  siteKey,
+  cacheSize: SITE_CACHE.size,
+});
 }
 
 // Real summarizer: uses OpenAI to extract business info from the DOM snapshot

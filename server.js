@@ -116,23 +116,31 @@ app.post("/chat", async (req, res) => {
       inputMessages.push({ role: "user", content: latestTrimmed });
     }
 
+    // Put the business summary in a SYSTEM message so it stays top-priority
+    const systemMessages = [
+      {
+        role: "system",
+        content:
+          AUREA_SYSTEM_PROMPT +
+          "\n\nRules for using Business Summary:\n" +
+          "- Use BUSINESS_SUMMARY as the source of truth for services, pricing, hours, booking links.\n" +
+          "- Do NOT guess. If pricing is not present, say: \"I don’t see pricing listed on this page.\" \n" +
+          "- If pricing IS present, list plans/prices clearly in bullet points.\n" +
+          "- If a booking link is present, include it when the user asks how to book.\n",
+      },
+      {
+        role: "system",
+        content:
+          "BUSINESS_SUMMARY (authoritative JSON):\n" +
+          JSON.stringify(businessSummary),
+      },
+    ];
+    
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
-      instructions:
-        AUREA_SYSTEM_PROMPT +
-        "\n\nRules for using Business Summary:\n" +
-        "- Use the Business Summary as the source of truth for services, pricing, hours, booking links.\n" +
-        "- Do NOT guess. If pricing is not present, say: \"I don’t see pricing listed on this page.\" \n" +
-        "- If pricing IS present, list plans/prices clearly in bullet points.\n" +
-        "- If a booking link is present, include it when the user asks how to book.\n" +
-        "\n\nBusiness Summary (from the website the widget is embedded on):\n" +
-        JSON.stringify(businessSummary),
-
-
-      // OPTIONAL: give the model the conversationId as extra context (not required)
-      // metadata: { conversationId },
-      input: inputMessages,
+      input: [...systemMessages, ...inputMessages],
     });
+
 
     const aiReply = response.output_text || "No reply.";
 

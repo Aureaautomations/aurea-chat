@@ -17,8 +17,16 @@ function sha256(input) {
   return crypto.createHash("sha256").update(input || "", "utf8").digest("hex");
 }
 
-function getSiteKey(meta) {
-  const url = meta?.pageUrl;
+function getSiteKey(input) {
+  // Accept either:
+  // - a URL string (preferred)
+  // - an object with .origin
+  // - an object with .pageUrl (legacy)
+  const url =
+    (typeof input === "string" ? input : null) ||
+    input?.origin ||
+    input?.pageUrl;
+
   if (!url) return null;
 
   try {

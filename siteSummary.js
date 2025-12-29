@@ -336,6 +336,28 @@ Rules:
       );
     }
 
+    // Deterministic fallback if the model missed booking.url
+    if (!result?.booking?.url) {
+      const fallback = extractBookingUrlFallback(trimmed, siteKey);
+      if (fallback) {
+        result.booking = result.booking || { method: null, url: null };
+        result.booking.url = fallback;
+    
+        // If method is missing, set a simple method label
+        if (!result.booking.method) result.booking.method = "link";
+    
+        // Clean up missingFields if present
+        if (Array.isArray(result.missingFields)) {
+          result.missingFields = result.missingFields.filter(
+            (f) => f !== "booking.url" && f !== "booking.method"
+          );
+        }
+      }
+    }
+    
+    // Back-compat alias (server.js currently reads businessSummary.bookingUrl)
+    result.bookingUrl = result?.booking?.url || null;
+    
     // Attach debug (safe)
     result._debug = {
       siteKey,

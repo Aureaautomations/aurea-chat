@@ -7,6 +7,48 @@ const SITE_CACHE = new Map();
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const MAX_CONTEXT_CHARS = 45_000;
 
+function extractBookingUrlFallback(trimmed, siteKey) {
+  if (!trimmed || typeof trimmed !== "string") return null;
+
+  const origin = typeof siteKey === "string" ? siteKey : null;
+
+  // Look for href/url values that include intent keywords.
+  // This is deterministic string matching, not AI.
+  const intent = /(book|booking|demo|schedule|appointment|contact|get started|consult|call)/i;
+
+  // Match common patterns like href="...", href:'...', "url":"..."
+  const re = /(href|url)\s*[:=]\s*["']([^"']+)["']/gi;
+
+  let m;
+  const candidates = [];
+
+  while ((m = re.exec(trimmed)) !== null) {
+    const raw = (m[2] || "").trim();
+    if (!raw) continue;
+
+    const lower = raw.toLowerCase();
+    if (!intent.test(lower)) continue;
+
+    // Make absolute if it's a relative URL and we know origin
+    let abs = raw;
+    if (origin && raw.startsWith("/")) abs = origin.replace(/\/$/, "") + raw;
+
+    // Only allow http(s) or same-page anchors when combined with origin
+    const absLower = abs.toLowerCase();
+    const isHttp = absLower.startsWith("http://") || absLower.startsWith("https://");
+    const isAnchor = abs.startsWith("#");
+
+    if (isAnchor && origin) abs = origin.replace(/\/$/, "") + "/" + abs; // origin/#...
+    if (!isHttp && !abs.startsWith(origin || "")) continue;
+
+    candidates.push(abs);
+  }
+
+  // Prefer the strongest-looking ones first
+  const preferred = candidates.find((u) => /book|demo|schedule|appointment/i.test(u));
+  return preferred || candidates[0] || null;
+}
+
 function safeTrimContext(raw) {
   if (!raw) return "";
   const s = typeof raw === "string" ? raw : JSON.stringify(raw);

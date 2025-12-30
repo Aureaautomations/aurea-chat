@@ -33,7 +33,7 @@ const RE = {
   duration: /\b(30|45|60|75|90)\s*(min|mins|minutes)\b/i,
   serviceHint: /\b(deep tissue|relaxation|swedish|sports massage|prenatal|hot stone)\b/i,
 
-  pricingIntent: /\b(price|pricing|cost|rates?|how much|plans?)\b/i,
+  pricingIntent: /\b(prices?|pricing|costs?|rates?|fee|fees|how much|plans?)\b/i,
 };
 
 // --- helpers ---

@@ -475,10 +475,16 @@ async function getSiteContextV2() {
                         /book|booking|schedule|appointment|demo/.test(text);
   
       if (!isBooking) return;
+      
+      link.insertAdjacentHTML("beforebegin", "<br/>");
   
       // button styling (inline so it survives site-builder CSS)
-      link.style.display = "inline-block";
+      link.style.display = "inline-flex";
+      link.style.alignItems = "center";
+      link.style.justifyContent = "center";
       link.style.marginTop = "10px";
+      link.style.marginLeft = "0";
+      link.style.whiteSpace = "nowrap";
       link.style.padding = "10px 14px";
       link.style.background = "#111";
       link.style.color = "#fff";

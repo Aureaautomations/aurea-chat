@@ -421,6 +421,85 @@ async function getSiteContextV2() {
     true // capture phase
   );
 
+  
+  function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+  // Matches http(s) links and bare domains like example.com/path
+  const URL_REGEX =
+    /(\bhttps?:\/\/[^\s<]+|\bwww\.[^\s<]+|\b[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s<]*)?)/gi;
+  
+  function linkifyToHtml(text) {
+    const safe = escapeHtml(text);
+  
+    return safe.replace(URL_REGEX, (raw) => {
+      const href = raw.startsWith("http")
+        ? raw
+        : raw.startsWith("www.")
+          ? `https://${raw}`
+          : `https://${raw}`;
+  
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${raw}</a>`;
+    });
+  }
+  
+  function setMessageContent(el, role, text) {
+    if (role !== "assistant") {
+      el.textContent = text;
+      return;
+    }
+  
+    // Assistant: clickable links + preserve line breaks
+    el.innerHTML = linkifyToHtml(text).replace(/\n/g, "<br/>");
+  }
+
+  function styleBookingLinks(container) {
+    const links = container.querySelectorAll("a");
+    if (!links.length) return;
+  
+    let madeOneButton = false;
+  
+    links.forEach((link) => {
+      if (madeOneButton) return; // only one primary CTA per message
+  
+      const href = (link.getAttribute("href") || "").toLowerCase();
+      const text = (link.textContent || "").toLowerCase();
+  
+      const isBooking = /book|booking|schedule|appointment|demo/.test(href) ||
+                        /book|booking|schedule|appointment|demo/.test(text);
+  
+      if (!isBooking) return;
+  
+      // button styling (inline so it survives site-builder CSS)
+      link.style.display = "inline-block";
+      link.style.marginTop = "10px";
+      link.style.padding = "10px 14px";
+      link.style.background = "#111";
+      link.style.color = "#fff";
+      link.style.borderRadius = "10px";
+      link.style.textDecoration = "none";
+      link.style.fontWeight = "600";
+      link.style.border = "1px solid #111";
+  
+      // nicer label if the raw URL is showing
+      if (link.textContent && link.textContent.trim().startsWith("http")) {
+        link.textContent = "Book now";
+      }
+  
+      // hover feel
+      link.addEventListener("mouseenter", () => (link.style.opacity = "0.85"));
+      link.addEventListener("mouseleave", () => (link.style.opacity = "1"));
+  
+      madeOneButton = true;
+    });
+  }
+
   function add(role, text) {
     // Normalize role names for UI
     const isUser = role === "user";
@@ -430,7 +509,10 @@ async function getSiteContextV2() {
     wrap.style.justifyContent = isUser ? "flex-end" : "flex-start";
 
     const bubble = document.createElement("div");
-    bubble.textContent = text;
+    setMessageContent(bubble, role, text);
+    if (role === "assistant") {
+      styleBookingLinks(bubble);
+    }
     bubble.style.padding = "10px 12px";
     bubble.style.borderRadius = "12px";
     bubble.style.maxWidth = "85%";

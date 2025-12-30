@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+const { routeMessage, JOBS } = require("./router");
+
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -28,6 +30,18 @@ How you should respond:
 - Never mention you are “just a language model”. You are Aurea, the assistant.
 - If you don’t know a detail (like exact pricing), say so and offer the best next step.
 `;
+
+const JOB1_SYSTEM_PROMPT =
+  "You are Aurea Revenue Agent running JOB #1: Convert Website Visitors Into Bookings.\n" +
+  "Goal: move the visitor toward booking with minimal friction.\n" +
+  "Rules:\n" +
+  "- Ask at most ONE question at a time.\n" +
+  "- Keep replies short (2–5 sentences).\n" +
+  "- Do NOT include any URLs.\n" +
+  "- Do NOT invent services/pricing/hours.\n" +
+  "- If you need info, ask a clarifying question.\n" +
+  "- Do NOT mention jobs, routing, or internal systems.\n";
+
 
 app.use(express.json());
 
@@ -70,6 +84,16 @@ app.post("/chat", async (req, res) => {
     const userMessage = req.body?.message;
     const conversationId = req.body?.conversationId; // optional for now
     const history = sanitizeHistory(req.body?.history);
+
+    // ✅ ROUTING (pre-model) — compute + log only, no behavior changes yet
+    const route = routeMessage({
+      message: userMessage || "",
+      history: Array.isArray(history) ? history : [],
+      signals: req.body?.signals || {},
+      channel: req.body?.channel || "widget",
+    });
+    
+    console.log("[ROUTE]", route);
 
     // ✅ pull site context from widget payload
     const siteContext = req.body?.siteContext;
@@ -136,17 +160,37 @@ app.post("/chat", async (req, res) => {
       },
     ];
     
-    const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: [...systemMessages, ...inputMessages],
-    });
+    // Deterministic CTA type (model never chooses)
+    const ctaType = route?.cta?.type || "BOOK_NOW";
+    
+    let aiReply = "How can I help you book today?";
+    
+    // TEMP: Only Job #1 is implemented end-to-end.
+    // Everything else returns a deterministic placeholder for now.
+    if (route.job === JOBS.JOB_1) {
+      const jobMessages = [
+        { role: "system", content: JOB1_SYSTEM_PROMPT },
+        ...systemMessages,
+      ];
+    
+      const response = await openai.responses.create({
+        model: "gpt-4.1-mini",
+        input: [...jobMessages, ...inputMessages],
+      });
+    
+      aiReply = response.output_text || "No reply.";
+    } else {
+      // Temporary fallback (no OpenAI)
+      aiReply =
+        "I can help with that. To get you booked, what day/time are you aiming for and what kind of massage do you want?";
+    }
 
-
-    const aiReply = response.output_text || "No reply.";
 
     return res.json({
       reply: aiReply,
       conversationId: conversationId || null,
+      route,
+      ctaType,
       siteDebug: {
         buildTag: "debug-v1",
         siteKey,

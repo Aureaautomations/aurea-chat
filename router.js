@@ -32,6 +32,8 @@ const RE = {
   // Service/duration selection (used for facts; Job #3 is hard-blocked for now anyway)
   duration: /\b(30|45|60|75|90)\s*(min|mins|minutes)\b/i,
   serviceHint: /\b(deep tissue|relaxation|swedish|sports massage|prenatal|hot stone)\b/i,
+
+  pricingIntent: /\b(price|pricing|cost|rates?|how much|plans?)\b/i,
 };
 
 // --- helpers ---
@@ -117,10 +119,14 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   }
 
   // 6) Job #1 Convert Visitor (default)
+  const job1CtaType = RE.pricingIntent.test(text)
+    ? "LEAVE_CONTACT"
+    : "BOOK_NOW";
+  
   return {
     job: JOBS.JOB_1,
     facts,
-    cta: { type: "BOOK_NOW" },
+    cta: { type: job1CtaType },
   };
 }
 

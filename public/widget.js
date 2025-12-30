@@ -313,6 +313,8 @@ async function getSiteContextV2() {
     __aurea_sitewide_cache_at = 0;
   
     messagesEl.innerHTML = "";
+    const existing = document.getElementById("aurea-cta-wrap");
+    if (existing) existing.remove();
     historyRendered = false;
   
     add("assistant", GREETING);
@@ -505,7 +507,60 @@ async function getSiteContextV2() {
       madeOneButton = true;
     });
   }
+    function ctaLabel(ctaType) {
+      switch (ctaType) {
+        case "BOOK_NOW": return "Book now";
+        case "CHOOSE_TIME": return "Choose a time";
+        case "LEAVE_CONTACT": return "Leave your contact";
+        case "ESCALATE": return "Contact the clinic";
+        default: return "Book now";
+      }
+    }
+    
+    function renderDeterministicCTA(ctaType, bookingUrl) {
+      // remove any existing CTA (we only want one visible at a time)
+      const existing = document.getElementById("aurea-cta-wrap");
+      if (existing) existing.remove();
+    
+      if (!bookingUrl || typeof bookingUrl !== "string") return;
+    
+      const wrap = document.createElement("div");
+      wrap.id = "aurea-cta-wrap";
+      wrap.style.marginBottom = "10px";
+      wrap.style.display = "flex";
+      wrap.style.justifyContent = "flex-start";
+    
+      const btn = document.createElement("a");
+      btn.id = "aurea-cta";
+      btn.href = bookingUrl;
+      btn.target = "_blank";
+      btn.rel = "noopener noreferrer";
+      btn.textContent = ctaLabel(ctaType);
+    
+      // inline styles only
+      btn.style.display = "inline-flex";
+      btn.style.alignItems = "center";
+      btn.style.justifyContent = "center";
+      btn.style.whiteSpace = "nowrap";
+      btn.style.marginTop = "2px";
+      btn.style.padding = "10px 14px";
+      btn.style.background = "#111";
+      btn.style.color = "#fff";
+      btn.style.borderRadius = "10px";
+      btn.style.textDecoration = "none";
+      btn.style.fontWeight = "600";
+      btn.style.border = "1px solid #111";
+    
+      btn.addEventListener("mouseenter", () => (btn.style.opacity = "0.85"));
+      btn.addEventListener("mouseleave", () => (btn.style.opacity = "1"));
+    
+      wrap.appendChild(btn);
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
 
+
+  
   function add(role, text) {
     // Normalize role names for UI
     const isUser = role === "user";
@@ -633,6 +688,11 @@ async function getSiteContextV2() {
       const reply = d.reply || "No reply.";
       add("assistant", reply);
       pushToHistory("assistant", reply);
+      
+      const ctaType = d.ctaType || "BOOK_NOW";
+      const bookingUrl = d.bookingUrl || null;
+      renderDeterministicCTA(ctaType, bookingUrl);
+      
     } catch {
       removeTyping();
       add("assistant", "Error. Try again.");

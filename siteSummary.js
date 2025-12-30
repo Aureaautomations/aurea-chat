@@ -116,6 +116,58 @@ function setCachedSummary(siteKey, summary) {
 });
 }
 
+function toAbsUrl(href, origin) {
+  try {
+    return new URL(href, origin).href;
+  } catch {
+    return null;
+  }
+}
+
+function extractBookingUrlDeterministic(siteContext, siteKey) {
+  const origin = siteContext?.origin || siteKey || null;
+  if (!origin) return null;
+
+  const navLinks = Array.isArray(siteContext?.navLinks) ? siteContext.navLinks : [];
+  const candidates = navLinks
+    .map((l) => ({
+      text: String(l?.text || "").toLowerCase(),
+      href: String(l?.href || ""),
+    }))
+    .filter((x) => x.href);
+
+  const priority = [
+    /book|booking|schedule|appointment/,
+    /demo|get started|start|consult/,
+    /contact/,
+  ];
+
+  for (const re of priority) {
+    const hit = candidates.find((c) => re.test(c.text) || re.test(c.href.toLowerCase()));
+    if (hit) return toAbsUrl(hit.href, origin);
+  }
+
+  // Scan extraPages text for common booking providers
+  const extraPages = Array.isArray(siteContext?.extraPages) ? siteContext.extraPages : [];
+  const combined = [
+    siteContext?.textSample || "",
+    ...extraPages.map((p) => p?.textSample || ""),
+  ].join("\n");
+
+  const providerMatch = combined.match(
+    /\bhttps?:\/\/[^\s<"]*(calendly|janeapp|acuityscheduling|square\.site|setmore|simplybook|appointy)[^\s<"]*/i
+  );
+  if (providerMatch) return providerMatch[0];
+
+  // Any absolute URL that looks like booking/contact
+  const anyMatch = combined.match(
+    /\bhttps?:\/\/[^\s<"]*(book|booking|schedule|appointment|demo|contact|get-started)[^\s<"]*/i
+  );
+  if (anyMatch) return anyMatch[0];
+
+  return null;
+}
+
 // Real summarizer: uses OpenAI to extract business info from the DOM snapshot
 async function summarizeSiteContext({ siteKey, siteContext }) {
   const trimmed = safeTrimContext(siteContext);
@@ -336,17 +388,28 @@ Rules:
       );
     }
 
-    // Deterministic fallback if the model missed booking.url
-    if (!result?.booking?.url) {
+    // Deterministic booking URL extraction (NO AI). Prefer structured siteContext over trimmed text.
+    const deterministicBookingUrl = extractBookingUrlDeterministic(siteContext, siteKey);
+    
+    // Always force booking.url if we found one deterministically
+    if (deterministicBookingUrl) {
+      result.booking = result.booking || { method: null, url: null };
+      result.booking.url = deterministicBookingUrl;
+      if (!result.booking.method) result.booking.method = "link";
+    
+      if (Array.isArray(result.missingFields)) {
+        result.missingFields = result.missingFields.filter(
+          (f) => f !== "booking.url" && f !== "booking.method"
+        );
+      }
+    } else if (!result?.booking?.url) {
+      // LAST resort: your older text-only fallback (keep it as a backup)
       const fallback = extractBookingUrlFallback(trimmed, siteKey);
       if (fallback) {
         result.booking = result.booking || { method: null, url: null };
         result.booking.url = fallback;
-    
-        // If method is missing, set a simple method label
         if (!result.booking.method) result.booking.method = "link";
     
-        // Clean up missingFields if present
         if (Array.isArray(result.missingFields)) {
           result.missingFields = result.missingFields.filter(
             (f) => f !== "booking.url" && f !== "booking.method"

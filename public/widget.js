@@ -690,8 +690,8 @@ async function getSiteContextV2() {
       pushToHistory("assistant", reply);
       
       const ctaType = d.ctaType || "BOOK_NOW";
-      const bookingUrl = d.bookingUrl || null;
-      renderDeterministicCTA(ctaType, bookingUrl);
+      const ctaUrl = d.ctaUrl || d.bookingUrl || null;
+      renderDeterministicCTA(ctaType, ctaUrl);
       
     } catch {
       removeTyping();

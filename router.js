@@ -12,6 +12,8 @@ const JOBS = {
   JOB_7: "JOB_7_ESCALATION_GATE",
 };
 
+const ROUTER_BUILD = "router-build-2025-12-30-01";
+
 // --- keyword/regex detectors (keep these tight + auditable) ---
 const RE = {
   // Job #7 triggers (examples from your spec: legal/medical, threats, chargebacks, harassment, therapist complaint)
@@ -85,6 +87,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       job: JOBS.JOB_7,
       facts,
       cta: { type: "ESCALATE" },
+      _routerBuild: ROUTER_BUILD,
     };
   }
 
@@ -103,6 +106,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       job: JOBS.JOB_2,
       facts,
       cta: { type: "CHOOSE_TIME" },
+      _routerBuild: ROUTER_BUILD,
     };
   }
 
@@ -115,6 +119,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       job: JOBS.JOB_4,
       facts,
       cta: { type: "LEAVE_CONTACT" },
+      _routerBuild: ROUTER_BUILD,
     };
   }
 
@@ -127,6 +132,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     job: JOBS.JOB_1,
     facts,
     cta: { type: job1CtaType },
+    _routerBuild: ROUTER_BUILD,
   };
 }
 

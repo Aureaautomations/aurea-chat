@@ -511,7 +511,7 @@ async function getSiteContextV2() {
       switch (ctaType) {
         case "BOOK_NOW": return "Book now";
         case "CHOOSE_TIME": return "Choose a time";
-        case "LEAVE_CONTACT": return "Leave your contact";
+        case "LEAVE_CONTACT": return "Get started";
         case "ESCALATE": return "Contact the clinic";
         default: return "Book now";
       }

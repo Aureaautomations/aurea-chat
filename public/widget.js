@@ -3,7 +3,7 @@
   window.__AUREA_WIDGET_LOADED__ = true;
 
   // bump version
-  window.__AUREA_WIDGET_VERSION__ = "0.2.0";
+  window.__AUREA_WIDGET_VERSION__ = "0.2.1";
   console.log(`[Aurea Widget] loaded v${window.__AUREA_WIDGET_VERSION__}`);
 
   const CONFIG = window.AUREA_CONFIG || {};

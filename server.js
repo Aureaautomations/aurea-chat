@@ -162,6 +162,11 @@ app.post("/chat", async (req, res) => {
     
     // Deterministic CTA type (model never chooses)
     const ctaType = route?.cta?.type || "BOOK_NOW";
+    const ctaUrl =
+      ctaType === "LEAVE_CONTACT"
+        ? (businessSummary?.bookingUrl || null) // for now, reuse bookingUrl (your Aurea contact page)
+        : (businessSummary?.bookingUrl || null);
+
     
     let aiReply = "How can I help you book today?";
     
@@ -191,6 +196,7 @@ app.post("/chat", async (req, res) => {
       conversationId: conversationId || null,
       route,
       ctaType,
+      ctaUrl,
       siteDebug: {
         buildTag: "debug-v1",
         siteKey,

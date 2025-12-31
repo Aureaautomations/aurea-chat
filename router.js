@@ -22,8 +22,11 @@ const RE = {
   // Booking execution intent (Job #2)
   bookingIntent: /\b(book|booking|schedule|appointment|availability|available|times?|today|tomorrow|this week|next week)\b/i,
 
-  // Booking decline / hesitation (Job #4)
-  bookingDeclined: /\b(not yet|maybe later|just looking|i[' ]?ll think|not ready|no thanks|don'?t want to book)\b/i,
+  // Booking DELAY (stay in Job #2)
+  bookingDelay: /\b(not yet|maybe later|later|not now|another time|i[' ]?ll book (later|another time)|i[' ]?ll do it later|tomorrow instead|after work|in a bit)\b/i,
+  
+  // Booking DECLINE (exit Job #2)
+  bookingDecline: /\b(no thanks|no thank you|nah|nope|don'?t want to book|not booking|stop|leave me alone|just browsing|just looking)\b/i,
 
   // No availability (Job #4)
   noAvailability: /\b(no times|nothing available|fully booked|no availability|sold out)\b/i,
@@ -87,7 +90,12 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
       bookingPageOpened,
 
-    bookingDeclined: RE.bookingDeclined.test(text) || RE.noAvailability.test(text),
+    bookingDelay: RE.bookingDelay.test(text),
+
+    // Decline means “do not continue booking flow”.
+    // Treat "no availability" as NOT a decline — it's a capture-lead scenario.
+    bookingDecline: RE.bookingDecline.test(text),
+    noAvailability: RE.noAvailability.test(text),
 
     hasServiceSelected:
       RE.duration.test(text) ||
@@ -148,7 +156,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const bookingInProgress =
     mergedFacts.bookingIntent === true || historyShowsBookingIntent(history);
   
-  if (bookingInProgress && !facts.bookingDeclined) {
+  if (bookingInProgress && !facts.bookingDecline) {
     return {
       job: JOBS.JOB_2,
       facts: {
@@ -164,7 +172,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   // if (...) return { job: JOBS.JOB_3, ... }
 
   // 5) Job #4 Capture Lead
-  if (facts.bookingDeclined) {
+  if (facts.noAvailability || facts.bookingDecline) {
     return {
       job: JOBS.JOB_4,
       facts: mergedFacts,

@@ -43,6 +43,18 @@ function safeString(x) {
   return typeof x === "string" ? x : "";
 }
 
+function historyShowsBookingIntent(history = []) {
+  const recent = history.slice(-6);
+
+  return recent.some(m => {
+    const role = (m.role || "").toLowerCase();
+    if (role !== "user") return false;
+
+    const text = String(m.content || m.text || "").toLowerCase();
+    return /\b(book|booking|consultation|schedule|appointment|call)\b/.test(text);
+  });
+}
+
 function lastUserMessage(history) {
   if (!Array.isArray(history)) return "";
   for (let i = history.length - 1; i >= 0; i--) {
@@ -105,6 +117,19 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     return {
       job: JOBS.JOB_2,
       facts,
+      cta: { type: "CHOOSE_TIME" },
+      _routerBuild: ROUTER_BUILD,
+    };
+  }
+  
+    // 3.5) Sticky Job #2: if booking started anywhere in recent history, stay in Job #2
+  const bookingInProgress =
+    facts.bookingIntent === true || historyShowsBookingIntent(history);
+
+  if (bookingInProgress && !facts.bookingDeclined) {
+    return {
+      job: JOBS.JOB_2,
+      facts: { ...facts, bookingIntent: true },
       cta: { type: "CHOOSE_TIME" },
       _routerBuild: ROUTER_BUILD,
     };

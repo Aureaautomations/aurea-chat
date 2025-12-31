@@ -75,9 +75,22 @@ app.use(express.static("public"));
 // helpers (put these above app.post, below middleware is fine)
 const HISTORY_LIMIT = 40;
 
-function buildBookingAck(facts = {}) {
+function buildBookingAck(facts = {}, lastUserText = "") {
   const day = facts.desiredDay || null;
   const tw = facts.desiredTimeWindow || null;
+
+  const t = String(lastUserText || "").toLowerCase();
+
+  // If the user is delaying/hedging, don't repeat old day/time details
+  const isDelay =
+    t.includes("later") ||
+    t.includes("not now") ||
+    t.includes("another time") ||
+    t.includes("actually") ||
+    t.includes("maybe") ||
+    t.includes("instead");
+
+  if (isDelay) return "No problem.";
 
   if (day && tw) return `Got it — ${day} ${tw}.`;
   if (day) return `Got it — ${day}.`;
@@ -338,7 +351,12 @@ app.post("/chat", async (req, res) => {
       try { parsed = JSON.parse(raw); } catch {}
 
       // ✅ Deterministic first sentence from backend facts
-      const ack = buildBookingAck(route?.facts || {});
+      const lastUserText = (inputMessages || [])
+        .filter(m => m && m.role === "user" && typeof m.content === "string")
+        .map(m => m.content)
+        .pop() || "";
+      
+      const ack = buildBookingAck(route?.facts || {}, lastUserText);
 
       // ✅ Model is ONLY allowed to produce the second sentence ("tail")
       const modelTail = (parsed && typeof parsed.text === "string") ? parsed.text : "";

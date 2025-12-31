@@ -75,6 +75,30 @@ app.use(express.static("public"));
 // helpers (put these above app.post, below middleware is fine)
 const HISTORY_LIMIT = 40;
 
+function buildJob4Reply(routeFacts = {}) {
+  const noAvail = !!routeFacts.noAvailability;
+  const declined = !!routeFacts.bookingDecline;
+
+  if (noAvail) {
+    return (
+      "No problem — it looks like there aren’t any times that match right now.\n\n" +
+      "If you leave your contact info, we’ll follow up with options."
+    );
+  }
+
+  if (declined) {
+    return (
+      "No problem.\n\n" +
+      "If you want, leave your contact info and we can follow up—otherwise feel free to keep browsing."
+    );
+  }
+
+  // generic capture-lead fallback
+  return (
+    "If you’d like, leave your contact info and we’ll follow up."
+  );
+}
+
 function buildBookingAck(facts = {}, lastUserText = "") {
   const day = facts.desiredDay || null;
   const tw = facts.desiredTimeWindow || null;
@@ -371,9 +395,20 @@ app.post("/chat", async (req, res) => {
       aiReply = `${ack}\n\n${tail}`;
 
     }
-    
+
+    // Job #4 (deterministic — no OpenAI)
+    else if (route.job === JOBS.JOB_4) {
+      aiReply = buildJob4Reply(route?.facts || {});
+    }
+      
     // Everything else (keep your deterministic fallback for now)
     else {
+      // Only booking-related fallbacks belong here
+      if (ctaType !== "CHOOSE_TIME" && ctaType !== "BOOK_NOW" && ctaType !== "CONFIRM_BOOKING") {
+        aiReply = "If you’d like, leave your contact info and we’ll follow up.";
+        return;
+      }
+    
       const f = route?.facts || {};
       const day = f.desiredDay ? String(f.desiredDay) : null;
       const win = f.desiredTimeWindow ? String(f.desiredTimeWindow) : null;

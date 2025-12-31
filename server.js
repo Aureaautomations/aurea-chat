@@ -227,12 +227,23 @@ app.post("/chat", async (req, res) => {
     
     // Deterministic CTA type (model never chooses)
     const ctaType = route?.cta?.type || "BOOK_NOW";
-    const ctaUrl =
-      ctaType === "LEAVE_CONTACT"
-        ? (businessSummary?.bookingUrl || null) // for now, reuse bookingUrl (your Aurea contact page)
-        : (businessSummary?.bookingUrl || null);
-
     
+    // IMPORTANT: CTA URL must match CTA type.
+    // - CHOOSE_TIME / BOOK_NOW / CONFIRM_BOOKING should go to the bookingUrl (real booking page)
+    // - LEAVE_CONTACT should go to a lead/contact page (if you have one)
+    const bookingUrl = businessSummary?.bookingUrl || null;
+    const contactUrl = businessSummary?.contactUrl || businessSummary?.bookingUrl || null; // fallback for now
+    
+    let ctaUrl = null;
+    
+    if (ctaType === "LEAVE_CONTACT") {
+      ctaUrl = contactUrl;
+    } else if (["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType)) {
+      ctaUrl = bookingUrl;
+    } else {
+      ctaUrl = bookingUrl;
+    }
+
     let aiReply = "How can I help you book today?";
     
     // Job #1 (plain text — NO structured output)

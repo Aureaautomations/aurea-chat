@@ -231,8 +231,19 @@ app.post("/chat", async (req, res) => {
     // IMPORTANT: CTA URL must match CTA type.
     // - CHOOSE_TIME / BOOK_NOW / CONFIRM_BOOKING should go to the bookingUrl (real booking page)
     // - LEAVE_CONTACT should go to a lead/contact page (if you have one)
-    const bookingUrl = businessSummary?.bookingUrl || null;
-    const contactUrl = businessSummary?.contactUrl || businessSummary?.bookingUrl || null; // fallback for now
+    
+    // ENV overrides (lets you force a real scheduler link when site extraction is wrong/missing)
+    const BOOKING_URL_OVERRIDE = (process.env.AUREA_BOOKING_URL_OVERRIDE || "").trim();
+    const CONTACT_URL_OVERRIDE = (process.env.AUREA_CONTACT_URL_OVERRIDE || "").trim();
+    
+    const bookingUrl =
+      (BOOKING_URL_OVERRIDE ? BOOKING_URL_OVERRIDE : (businessSummary?.bookingUrl || "")).trim() || null;
+    
+    const contactUrl =
+      (CONTACT_URL_OVERRIDE
+        ? CONTACT_URL_OVERRIDE
+        : (businessSummary?.contactUrl || businessSummary?.bookingUrl || "")
+      ).trim() || null;
     
     let ctaUrl = null;
     

@@ -85,10 +85,12 @@ function buildBookingAck(facts = {}, lastUserText = "") {
   const isDelay =
     t.includes("later") ||
     t.includes("not now") ||
+    t.includes("not yet") ||
     t.includes("another time") ||
     t.includes("actually") ||
     t.includes("maybe") ||
     t.includes("instead");
+
 
   if (isDelay) return "No problem.";
 

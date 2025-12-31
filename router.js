@@ -140,9 +140,13 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
 
   // 3) Job #2 Execute Booking Process
   if (
-    ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
-    RE.bookingIntent.test(text) ||
-    (RE.readyConfirm.test(text) && facts.bookingIntent)
+    !facts.noAvailability &&
+    !facts.bookingDecline &&
+    (
+      ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
+      RE.bookingIntent.test(text) ||
+      (RE.readyConfirm.test(text) && facts.bookingIntent)
+    )
   ) {
     return {
       job: JOBS.JOB_2,
@@ -156,7 +160,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const bookingInProgress =
     mergedFacts.bookingIntent === true || historyShowsBookingIntent(history);
   
-  if (bookingInProgress && !facts.bookingDecline) {
+  if (bookingInProgress && !facts.bookingDecline && !facts.noAvailability) {
     return {
       job: JOBS.JOB_2,
       facts: {

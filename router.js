@@ -19,8 +19,8 @@ const RE = {
   // Job #7 triggers (examples from your spec: legal/medical, threats, chargebacks, harassment, therapist complaint)
   escalation: /\b(diagnose|treat|medical advice|should i take|lawsuit|sue|legal advice|chargeback|refund dispute|fraud|harass|threat|unsafe|injury|complain(t)?|staff issue)\b/i,
 
-  // Booking execution intent (Job #2)
-  bookingIntent: /\b(book|booking|schedule|appointment|availability|available|times?|today|tomorrow|this week|next week)\b/i,
+  bookingIntent: /\b(book|booking|schedule|appointment|times?|today|tomorrow|this week|next week)\b/i,
+  availabilityIntent: /\b(availability|available)\b/i,
 
   // Booking DELAY (stay in Job #2)
   bookingDelay: /\b(not yet|maybe later|later|not now|another time|i[' ]?ll book (later|another time)|i[' ]?ll do it later|tomorrow instead|after work|in a bit)\b/i,

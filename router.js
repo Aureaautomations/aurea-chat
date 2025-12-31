@@ -17,7 +17,7 @@ const ROUTER_BUILD = "router-build-2025-12-30-01";
 // --- keyword/regex detectors (keep these tight + auditable) ---
 const RE = {
   // Job #7 triggers (examples from your spec: legal/medical, threats, chargebacks, harassment, therapist complaint)
-  escalation: /\b(diagnose|treat|medical advice|should i take|lawsuit|sue|legal advice|chargeback|refund dispute|fraud|harass|threat|unsafe|injury|complain(t)?|therapist issue)\b/i,
+  escalation: /\b(diagnose|treat|medical advice|should i take|lawsuit|sue|legal advice|chargeback|refund dispute|fraud|harass|threat|unsafe|injury|complain(t)?|staff issue)\b/i,
 
   // Booking execution intent (Job #2)
   bookingIntent: /\b(book|booking|schedule|appointment|availability|available|times?|today|tomorrow|this week|next week)\b/i,
@@ -33,7 +33,7 @@ const RE = {
 
   // Service/duration selection (used for facts; Job #3 is hard-blocked for now anyway)
   duration: /\b(30|45|60|75|90)\s*(min|mins|minutes)\b/i,
-  serviceHint: /\b(deep tissue|relaxation|swedish|sports massage|prenatal|hot stone)\b/i,
+  serviceHint: /\b(service|treatment|session|package|plan|membership|add-?on|upgrade)\b/i,
 
   pricingIntent: /\b(prices?|pricing|costs?|rates?|fee|fees|how much|plans?)\b/i,
 
@@ -75,6 +75,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
 
   // normalize signals (v1 may be absent)
   const s = signals || {};
+  const priorFacts = (s.routerFacts && typeof s.routerFacts === "object") ? s.routerFacts : {};
   const lastCtaClicked = safeString(s.lastCtaClicked); // e.g., "BOOK_NOW"
   const bookingPageOpened = Boolean(s.bookingPageOpened);
 
@@ -104,12 +105,21 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     upgradeEligible: false,
   };
 
+  const mergedFacts = {
+    ...priorFacts,
+    ...facts,
+    // keep prior values if this turn didn’t find a new one
+    desiredDay: facts.desiredDay || priorFacts.desiredDay || null,
+    desiredTimeWindow: facts.desiredTimeWindow || priorFacts.desiredTimeWindow || null,
+    serviceInterest: facts.serviceInterest || priorFacts.serviceInterest || null,
+  };
+
   // ---- PRIORITY ORDER (LOCKED) ---- :contentReference[oaicite:1]{index=1}
   // 1) Job #7 Escalation Gate
   if (RE.escalation.test(text)) {
     return {
       job: JOBS.JOB_7,
-      facts,
+      facts: mergedFacts,
       cta: { type: "ESCALATE" },
       _routerBuild: ROUTER_BUILD,
     };
@@ -128,20 +138,20 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   ) {
     return {
       job: JOBS.JOB_2,
-      facts,
+      facts: mergedFacts,
       cta: { type: "CHOOSE_TIME" },
       _routerBuild: ROUTER_BUILD,
     };
   }
   
-    // 3.5) Sticky Job #2: if booking started anywhere in recent history, stay in Job #2
-  const bookingInProgress =
-    facts.bookingIntent === true || historyShowsBookingIntent(history);
-
+  // 3.5) Sticky Job #2: if booking started anywhere in recent history, stay in Job #2
   if (bookingInProgress && !facts.bookingDeclined) {
     return {
       job: JOBS.JOB_2,
-      facts: { ...facts, bookingIntent: true },
+      facts: {
+        ...mergedFacts,
+        bookingIntent: true,
+      },
       cta: { type: "CHOOSE_TIME" },
       _routerBuild: ROUTER_BUILD,
     };
@@ -154,7 +164,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   if (facts.bookingDeclined) {
     return {
       job: JOBS.JOB_4,
-      facts,
+      facts: mergedFacts,
       cta: { type: "LEAVE_CONTACT" },
       _routerBuild: ROUTER_BUILD,
     };
@@ -167,7 +177,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   
   return {
     job: JOBS.JOB_1,
-    facts,
+    facts: mergedFacts,
     cta: { type: job1CtaType },
     _routerBuild: ROUTER_BUILD,
   };

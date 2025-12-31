@@ -251,9 +251,27 @@ async function getSiteContextV2() {
   const LS_KEYS = {
     conversationId: "aurea_conversation_id",
     history: "aurea_chat_history_v1",
+    signals: "aurea_signals_v1",
   };
 
   const HISTORY_LIMIT = 40; // total messages (user+assistant)
+
+  function loadSignals() {
+    const raw = localStorage.getItem(LS_KEYS.signals);
+    const s = safeJsonParse(raw, {});
+    return s && typeof s === "object" ? s : {};
+  }
+  
+  function saveSignals(signals) {
+    localStorage.setItem(LS_KEYS.signals, JSON.stringify(signals || {}));
+    return signals || {};
+  }
+  
+  function setSignal(patch) {
+    const s = loadSignals();
+    const next = { ...s, ...(patch || {}), _ts: Date.now() };
+    return saveSignals(next);
+  }
 
   function safeJsonParse(value, fallback) {
     try {
@@ -307,6 +325,7 @@ async function getSiteContextV2() {
   
   function clearHistoryAndUI() {
     localStorage.removeItem(LS_KEYS.history);
+    localStorage.removeItem(LS_KEYS.signals);
     newConversationId();
   
     __aurea_sitewide_cache = null;

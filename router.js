@@ -118,7 +118,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     // keep prior values if this turn didn’t find a new one
     desiredDay: facts.desiredDay || priorFacts.desiredDay || null,
     desiredTimeWindow: facts.desiredTimeWindow || priorFacts.desiredTimeWindow || null,
-    serviceInterest: facts.serviceInterest || priorFacts.serviceInterest || null,
+    serviceInterest: facts.serviceInterest || null,
   };
 
   // ---- PRIORITY ORDER (LOCKED) ---- :contentReference[oaicite:1]{index=1}

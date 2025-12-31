@@ -44,7 +44,7 @@ function safeString(x) {
 }
 
 function historyShowsBookingIntent(history = []) {
-  const recent = history.slice(-6);
+  const recent = history.slice(-20);
 
   return recent.some(m => {
     const role = (m.role || "").toLowerCase();

@@ -198,19 +198,6 @@ app.post("/chat", async (req, res) => {
         { role: "system", content: JOB1_SYSTEM_PROMPT },
         ...systemMessages,
       ];
-    
-      const response = await openai.responses.create({
-        model: "gpt-4.1-mini",
-        input: [...job2Messages, ...inputMessages],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "job2_execute_booking",
-            strict: true,
-            schema: JOB2_RESPONSE_SCHEMA,
-          },
-        },
-      });
       
       const raw = response.output_text || "";
       let parsed;

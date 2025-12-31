@@ -185,29 +185,13 @@ app.post("/chat", async (req, res) => {
         ...systemMessages,
       ];
     
-    const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: [...job2Messages, ...inputMessages],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "job2_response",
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              text: { type: "string" },
-              askedField: {
-                type: ["string", "null"],
-                enum: ["desiredDay", "desiredTimeWindow", "serviceInterest", null],
-              },
-            },
-            required: ["text", "askedField"],
-          },
-        },
-      },
-    });
-
+      const response = await openai.responses.create({
+        model: "gpt-4.1-mini",
+        input: [...jobMessages, ...inputMessages],
+      });
+    
+      aiReply = response.output_text || "No reply.";
+    }
     
     const raw = response.output_text || "";
     let parsed = null;

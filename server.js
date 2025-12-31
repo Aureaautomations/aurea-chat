@@ -95,7 +95,7 @@ function buildBookingAck(facts = {}, lastUserText = "") {
   if (day && tw) return `Got it — ${day} ${tw}.`;
   if (day) return `Got it — ${day}.`;
   if (tw) return `Got it — ${tw}.`;
-  return `ACK_DEBUG_123`;
+  return `Got it.`;
 }
 
 function isAllowedJob2Tail(text) {

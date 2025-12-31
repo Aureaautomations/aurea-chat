@@ -205,6 +205,7 @@ app.post("/chat", async (req, res) => {
         text: {
           format: {
             type: "json_schema",
+            name: "job2_execute_booking",
             strict: true,
             schema: JOB2_RESPONSE_SCHEMA,
           },

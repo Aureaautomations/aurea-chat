@@ -145,6 +145,9 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   }
   
   // 3.5) Sticky Job #2: if booking started anywhere in recent history, stay in Job #2
+  const bookingInProgress =
+    mergedFacts.bookingIntent === true || historyShowsBookingIntent(history);
+  
   if (bookingInProgress && !facts.bookingDeclined) {
     return {
       job: JOBS.JOB_2,

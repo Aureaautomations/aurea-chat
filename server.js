@@ -216,10 +216,8 @@ app.post("/chat", async (req, res) => {
 
     }
     
-    // Job #2
-    else if (route.job === JOBS.JOB_2) {
-      const f = route?.facts || {};
-    
+  // Job #2
+  else if (route.job === JOBS.JOB_2) {
     const f = route?.facts || {};
     
     const desiredDay = f.desiredDay || null;

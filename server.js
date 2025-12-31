@@ -193,52 +193,45 @@ app.post("/chat", async (req, res) => {
       aiReply = response.output_text || "No reply.";
     }
     
-    const raw = response.output_text || "";
-    let parsed = null;
-    try { parsed = JSON.parse(raw); } catch {}
-    aiReply = (parsed && parsed.text) ? parsed.text : (raw || "No reply.");
-
-    }
+    // Job #2
+    else if (route.job === JOBS.JOB_2) {
+      const f = route?.facts || {};
     
-  // Job #2
-  else if (route.job === JOBS.JOB_2) {
-    const f = route?.facts || {};
+      const desiredDay = f.desiredDay || null;
+      const desiredTimeWindow = f.desiredTimeWindow || null;
     
-    const desiredDay = f.desiredDay || null;
-    const desiredTimeWindow = f.desiredTimeWindow || null;
+      // Determine the ONE thing we're missing
+      let allowedQuestion = null;
+      if (!desiredDay) allowedQuestion = "desiredDay";
+      else if (!desiredTimeWindow) allowedQuestion = "desiredTimeWindow";
+      else allowedQuestion = null;
     
-    // Determine the ONE thing we're missing
-    let allowedQuestion = null;
-    if (!desiredDay) allowedQuestion = "desiredDay";
-    else if (!desiredTimeWindow) allowedQuestion = "desiredTimeWindow";
-    else allowedQuestion = null;
+      const job2Messages = [
+        {
+          role: "system",
+          content:
+            "You are JOB_2_EXECUTE_BOOKING.\n" +
+            "Goal: help the user complete a booking step.\n\n" +
+            "Hard rules:\n" +
+            "- You MUST use the provided ROUTE_FACTS.\n" +
+            "- You may ask at most ONE question.\n" +
+            "- You may ONLY ask about ALLOWED_QUESTION.\n" +
+            "- If ALLOWED_QUESTION is null: ask no questions; tell them to click the CTA to choose a time.\n" +
+            "- Do NOT mention any specific industry unless it is explicitly present in BUSINESS_SUMMARY.\n" +
+            "- Do NOT include links.\n\n" +
+            "ROUTE_FACTS:\n" +
+            JSON.stringify({ desiredDay, desiredTimeWindow }) +
+            "\n\n" +
+            "ALLOWED_QUESTION:\n" +
+            JSON.stringify(allowedQuestion) +
+            "\n\n" +
+            "Response requirements:\n" +
+            "- First sentence: confirm what we captured (e.g., 'Got it — tomorrow afternoon.').\n" +
+            "- Then either ask the one allowed question OR instruct them to click the CTA.\n",
+        },
+        ...systemMessages,
+      ];
     
-    const job2Messages = [
-      {
-        role: "system",
-        content:
-          "You are JOB_2_EXECUTE_BOOKING.\n" +
-          "Goal: help the user complete a booking step.\n\n" +
-          "Hard rules:\n" +
-          "- You MUST use the provided ROUTE_FACTS.\n" +
-          "- You may ask at most ONE question.\n" +
-          "- You may ONLY ask about ALLOWED_QUESTION.\n" +
-          "- If ALLOWED_QUESTION is null: ask no questions; tell them to click the CTA to choose a time.\n" +
-          "- Do NOT mention any specific industry unless it is explicitly present in BUSINESS_SUMMARY.\n" +
-          "- Do NOT include links.\n\n" +
-          "ROUTE_FACTS:\n" +
-          JSON.stringify({ desiredDay, desiredTimeWindow }) +
-          "\n\n" +
-          "ALLOWED_QUESTION:\n" +
-          JSON.stringify(allowedQuestion) +
-          "\n\n" +
-          "Response requirements:\n" +
-          "- First sentence: confirm what we captured (e.g., 'Got it — tomorrow afternoon.').\n" +
-          "- Then either ask the one allowed question OR instruct them to click the CTA.\n",
-      },
-      ...systemMessages,
-    ];
-
       const response = await openai.responses.create({
         model: "gpt-4.1-mini",
         input: [...job2Messages, ...inputMessages],
@@ -258,9 +251,6 @@ app.post("/chat", async (req, res) => {
       else if (!day && win) aiReply = `Got it — ${win}. What day are you aiming for (today, tomorrow, or later this week)?`;
       else aiReply = `What day are you aiming for (today/tomorrow/this week), and do you prefer morning, afternoon, or evening?`;
     }
-
-
-
 
     return res.json({
       reply: aiReply,

@@ -172,7 +172,7 @@ app.post("/chat", async (req, res) => {
           "- Use BUSINESS_SUMMARY as the source of truth for services, pricing, hours, booking links.\n" +
           "- Do NOT guess. If pricing is not present, say: \"I don’t see pricing listed on this page.\" \n" +
           "- If pricing IS present, list plans/prices clearly in bullet points.\n" +
-          "- If a booking link is present, include it when the user asks how to book.\n",
+          "- Do NOT include links. If the user asks how to book, tell them to use the CTA button.\n",
       },
       {
         role: "system",
@@ -192,21 +192,22 @@ app.post("/chat", async (req, res) => {
     
     let aiReply = "How can I help you book today?";
     
-    // Job #1
+    // Job #1 (plain text — NO structured output)
     if (route.job === JOBS.JOB_1) {
       const jobMessages = [
         { role: "system", content: JOB1_SYSTEM_PROMPT },
         ...systemMessages,
       ];
-      
-      const raw = response.output_text || "";
-      let parsed;
-      try { parsed = JSON.parse(raw); } catch { parsed = null; }
-      
-      aiReply = parsed?.text || "No reply.";
-
-    }
     
+      const response = await openai.responses.create({
+        model: "gpt-4.1-mini",
+        input: [...jobMessages, ...inputMessages],
+        // IMPORTANT: no text.format here
+      });
+    
+      aiReply = response.output_text || "No reply.";
+    }
+
     // Job #2
     else if (route.job === JOBS.JOB_2) {
       const f = route?.facts || {};
@@ -252,12 +253,13 @@ app.post("/chat", async (req, res) => {
         text: {
           format: {
             type: "json_schema",
+            name: "job2_execute_booking",
             strict: true,
             schema: JOB2_RESPONSE_SCHEMA,
           },
         },
       });
-      
+
       const raw = response.output_text || "";
       let parsed = null;
       try { parsed = JSON.parse(raw); } catch {}

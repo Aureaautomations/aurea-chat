@@ -555,6 +555,13 @@ async function getSiteContextV2() {
       btn.target = "_blank";
       btn.rel = "noopener noreferrer";
       btn.textContent = ctaLabel(ctaType);
+
+      btn.addEventListener("click", () => {
+        setSignal({
+          lastCtaClicked: ctaType,
+          bookingPageOpened: true,
+        });
+      });
     
       // inline styles only
       btn.style.display = "inline-flex";
@@ -666,6 +673,7 @@ async function getSiteContextV2() {
     try {
       const conversationId = getConversationId();
       const history = loadHistory(); // includes the user message we just pushed
+      const signals = loadSignals();
 
       let siteContext = null;
       const CACHE_MS = 5 * 60 * 1000;
@@ -685,6 +693,7 @@ async function getSiteContextV2() {
           conversationId,
           message: text,
           history,
+          signals,
           siteContext, // ✅ ADD THIS LINE (right above meta is perfect)
           meta: {
             businessName: BUSINESS_NAME,
@@ -702,6 +711,11 @@ async function getSiteContextV2() {
       }
 
       const d = await r.json();
+
+      if (d && d.route && d.route.facts) {
+        setSignal({ routerFacts: d.route.facts });
+      }
+
       removeTyping();
 
       const reply = d.reply || "No reply.";

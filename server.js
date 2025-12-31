@@ -408,11 +408,27 @@ app.post("/chat", async (req, res) => {
     // Everything else (keep your deterministic fallback for now)
     else {
       // Only booking-related fallbacks belong here
-      if (ctaType !== "CHOOSE_TIME" && ctaType !== "BOOK_NOW" && ctaType !== "CONFIRM_BOOKING") {
-        aiReply = "If you’d like, leave your contact info and we’ll follow up.";
-        return;
-      }
+    if (ctaType !== "CHOOSE_TIME" && ctaType !== "BOOK_NOW" && ctaType !== "CONFIRM_BOOKING") {
+      aiReply = "If you’d like, leave your contact info and we’ll follow up.";
     
+      return res.json({
+        reply: aiReply,
+        conversationId: conversationId || null,
+        route,
+        ctaType,
+        ctaUrl,
+        siteDebug: {
+          buildTag: "debug-v1",
+          siteKey,
+          summaryWasCached,
+          summaryConfidence: businessSummary?.confidence ?? null,
+          contextChars: businessSummary?._debug?.contextChars ?? null,
+        },
+        pricing: businessSummary?.pricing ?? null,
+        bookingUrl: businessSummary?.bookingUrl ?? null,
+        services: businessSummary?.services ?? null,
+      });
+    }
       const f = route?.facts || {};
       const day = f.desiredDay ? String(f.desiredDay) : null;
       const win = f.desiredTimeWindow ? String(f.desiredTimeWindow) : null;

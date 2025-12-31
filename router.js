@@ -36,6 +36,10 @@ const RE = {
   serviceHint: /\b(deep tissue|relaxation|swedish|sports massage|prenatal|hot stone)\b/i,
 
   pricingIntent: /\b(prices?|pricing|costs?|rates?|fee|fees|how much|plans?)\b/i,
+
+  dayHint: /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|this week|next week)\b/i,
+  timeWindow: /\b(morning|afternoon|evening|tonight)\b/i,
+  serviceInterest: /\b(sms|text|email|re-?engagement|welcome|lead capture|reminders?|reviews?)\b/i,
 };
 
 // --- helpers ---
@@ -84,7 +88,15 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
 
     bookingDeclined: RE.bookingDeclined.test(text) || RE.noAvailability.test(text),
 
-    hasServiceSelected: RE.duration.test(text) || RE.serviceHint.test(text),
+    hasServiceSelected:
+      RE.duration.test(text) ||
+      RE.serviceHint.test(text) ||
+      RE.serviceInterest.test(text) ||
+      RE.serviceInterest.test(lastUser),
+
+    desiredDay: ((text.match(RE.dayHint) || lastUser.match(RE.dayHint)) || [])[0] || null,
+    desiredTimeWindow: ((text.match(RE.timeWindow) || lastUser.match(RE.timeWindow)) || [])[0] || null,
+    serviceInterest: ((text.match(RE.serviceInterest) || lastUser.match(RE.serviceInterest)) || [])[0] || null,
 
     firstTimeLikely: /\b(first time|new (client|customer)|never been)\b/i.test(text),
 

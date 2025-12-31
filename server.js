@@ -75,6 +75,16 @@ app.use(express.static("public"));
 // helpers (put these above app.post, below middleware is fine)
 const HISTORY_LIMIT = 40;
 
+function buildBookingAck(facts = {}) {
+  const day = facts.desiredDay || null;
+  const tw = facts.desiredTimeWindow || null;
+
+  if (day && tw) return `Got it — ${day} ${tw}.`;
+  if (day) return `Got it — ${day}.`;
+  if (tw) return `Got it — ${tw}.`;
+  return `Got it.`;
+}
+
 function sanitizeHistory(history) {
   if (!Array.isArray(history)) return [];
   return history
@@ -241,7 +251,11 @@ app.post("/chat", async (req, res) => {
             JSON.stringify(allowedQuestion) +
             "\n\n" +
             "Response requirements:\n" +
-            "- First sentence: confirm what we captured (e.g., 'Got it — tomorrow afternoon.').\n" +
+            "- First sentence MUST match one of these:\n" +
+            "  - If desiredDay && desiredTimeWindow: 'Got it — <desiredDay> <desiredTimeWindow>.'\n" +
+            "  - If desiredDay && !desiredTimeWindow: 'Got it — <desiredDay>.'\n" +
+            "  - If !desiredDay && desiredTimeWindow: 'Got it — <desiredTimeWindow>.'\n" +
+            "  - If neither: 'Got it.'\n" +
             "- Then either ask the one allowed question OR instruct them to click the CTA.\n",
         },
         ...systemMessages,

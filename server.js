@@ -99,23 +99,27 @@ function buildJob4Reply(routeFacts = {}) {
   );
 }
 
-function buildBookingAck(facts = {}, lastUserText = "") {
+function buildBookingAck(facts = {}, lastUserText = "", bookingIntentThisTurn = false) {
   const day = facts.desiredDay || null;
   const tw = facts.desiredTimeWindow || null;
 
   const t = String(lastUserText || "").toLowerCase();
-
+  
   // If the user is delaying/hedging, don't repeat old day/time details
-  const isDelay =
+  const isDelayLanguage =
     t.includes("later") ||
     t.includes("not now") ||
     t.includes("not yet") ||
     t.includes("another time") ||
+    t.includes("maybe");
+  
+  const isChangeLanguage =
     t.includes("actually") ||
-    t.includes("maybe") ||
     t.includes("instead");
-
-
+  
+  // Only treat "actually/instead" as delay if they are NOT booking in the same message
+  const isDelay = (isDelayLanguage || isChangeLanguage) && !bookingIntentThisTurn;
+  
   if (isDelay) return "No problem.";
 
   if (day && tw) return `Got it — ${day} ${tw}.`;
@@ -382,7 +386,7 @@ app.post("/chat", async (req, res) => {
         .map(m => m.content)
         .pop() || "";
       
-      const ack = buildBookingAck(route?.facts || {}, lastUserText);
+      const ack = buildBookingAck(route?.facts || {}, lastUserText, !!route?.facts?.bookingIntent);
 
       // ✅ Model is ONLY allowed to produce the second sentence ("tail")
       const modelTail = (parsed && typeof parsed.text === "string") ? parsed.text : "";

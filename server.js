@@ -85,6 +85,39 @@ function buildBookingAck(facts = {}) {
   return `Got it.`;
 }
 
+function isAllowedJob2Tail(text) {
+  if (!text) return false;
+  const t = String(text).trim();
+
+  // Option B: exact instruction (verbatim)
+  if (t === "Please click the button to choose a time.") return true;
+
+  // Option A: exactly ONE question (single sentence ending with "?")
+  if (!t.endsWith("?")) return false;
+  if (t.includes("\n")) return false;
+
+  // Only one question mark total
+  if (t.split("?").length !== 2) return false;
+
+  // Optional: keep it tight so the model can't ramble
+  if (t.length > 160) return false;
+
+  return true;
+}
+
+function fallbackJob2Tail(facts = {}) {
+  const day = facts.desiredDay || null;
+  const tw = facts.desiredTimeWindow || null;
+
+  // Ask ONLY what’s missing; always ONE question
+  if (!day && !tw) return "What day and general time window would you prefer?";
+  if (!day) return "What day would you prefer?";
+  if (!tw) return "What time window works best (morning, afternoon, or evening)?";
+
+  // If nothing missing, deterministic instruction
+  return "Please click the button to choose a time.";
+}
+
 function sanitizeHistory(history) {
   if (!Array.isArray(history)) return [];
   return history
@@ -250,13 +283,17 @@ app.post("/chat", async (req, res) => {
             "ALLOWED_QUESTION:\n" +
             JSON.stringify(allowedQuestion) +
             "\n\n" +
-            "Response requirements:\n" +
-            "- First sentence MUST match one of these:\n" +
-            "  - If desiredDay && desiredTimeWindow: 'Got it — <desiredDay> <desiredTimeWindow>.'\n" +
-            "  - If desiredDay && !desiredTimeWindow: 'Got it — <desiredDay>.'\n" +
-            "  - If !desiredDay && desiredTimeWindow: 'Got it — <desiredTimeWindow>.'\n" +
-            "  - If neither: 'Got it.'\n" +
-            "- Then either ask the one allowed question OR instruct them to click the CTA.\n",
+            "OUTPUT RULES (STRICT):\n" +
+            "You must output ONLY ONE of the following:\n" +
+            "A) Exactly one question (a single sentence ending with \"?\") ONLY if required to proceed.\n" +
+            "B) Exactly this sentence (verbatim, no changes): \"Please click the button to choose a time.\"\n" +
+            "\n" +
+            "Do not confirm details.\n" +
+            "Do not say \"Got it\".\n" +
+            "Do not add extra sentences.\n" +
+            "Do not add bullet points.\n" +
+            "Do not include links.\n" +
+            "Do not mention CTAs, routing, jobs, or internal systems.\n",
         },
         ...systemMessages,
       ];
@@ -277,7 +314,19 @@ app.post("/chat", async (req, res) => {
       const raw = response.output_text || "";
       let parsed = null;
       try { parsed = JSON.parse(raw); } catch {}
-      aiReply = parsed?.text || "No reply.";
+
+      // ✅ Deterministic first sentence from backend facts
+      const ack = buildBookingAck(route?.facts || {});
+
+      // ✅ Model is ONLY allowed to produce the second sentence ("tail")
+      const modelTail = (parsed && typeof parsed.text === "string") ? parsed.text : "";
+
+      // ✅ Hard gate: if the model violates format, replace with deterministic fallback
+      const tail = isAllowedJob2Tail(modelTail)
+        ? modelTail.trim()
+        : fallbackJob2Tail({ desiredDay, desiredTimeWindow });
+
+      aiReply = `${ack}\n\n${tail}`;
 
     }
     

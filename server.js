@@ -261,9 +261,20 @@ app.post("/chat", async (req, res) => {
       const response = await openai.responses.create({
         model: "gpt-4.1-mini",
         input: [...job2Messages, ...inputMessages],
+        text: {
+          format: {
+            type: "json_schema",
+            strict: true,
+            schema: JOB2_RESPONSE_SCHEMA,
+          },
+        },
       });
-    
-      aiReply = response.output_text || "No reply.";
+      
+      const raw = response.output_text || "";
+      let parsed = null;
+      try { parsed = JSON.parse(raw); } catch {}
+      aiReply = parsed?.text || "No reply.";
+
     }
     
     // Everything else (keep your deterministic fallback for now)

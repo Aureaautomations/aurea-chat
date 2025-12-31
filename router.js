@@ -100,12 +100,11 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     hasServiceSelected:
       RE.duration.test(text) ||
       RE.serviceHint.test(text) ||
-      RE.serviceInterest.test(text) ||
-      RE.serviceInterest.test(lastUser),
+      RE.serviceInterest.test(text),
 
     desiredDay: ((text.match(RE.dayHint) || lastUser.match(RE.dayHint)) || [])[0] || null,
     desiredTimeWindow: ((text.match(RE.timeWindow) || lastUser.match(RE.timeWindow)) || [])[0] || null,
-    serviceInterest: ((text.match(RE.serviceInterest) || lastUser.match(RE.serviceInterest)) || [])[0] || null,
+    serviceInterest: (text.match(RE.serviceInterest) || [])[0] || null,
 
     firstTimeLikely: /\b(first time|new (client|customer)|never been)\b/i.test(text),
 

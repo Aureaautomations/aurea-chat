@@ -42,6 +42,20 @@ const JOB1_SYSTEM_PROMPT =
   "- If you need info, ask a clarifying question.\n" +
   "- Do NOT mention jobs, routing, or internal systems.\n";
 
+const JOB2_RESPONSE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    text: { type: "string" },
+    askedField: {
+      anyOf: [
+        { type: "string", enum: ["desiredDay", "desiredTimeWindow"] },
+        { type: "null" }
+      ]
+    }
+  },
+  required: ["text", "askedField"]
+};
 
 app.use(express.json());
 
@@ -187,10 +201,22 @@ app.post("/chat", async (req, res) => {
     
       const response = await openai.responses.create({
         model: "gpt-4.1-mini",
-        input: [...jobMessages, ...inputMessages],
+        input: [...job2Messages, ...inputMessages],
+        text: {
+          format: {
+            type: "json_schema",
+            strict: true,
+            schema: JOB2_RESPONSE_SCHEMA,
+          },
+        },
       });
-    
-      aiReply = response.output_text || "No reply.";
+      
+      const raw = response.output_text || "";
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch { parsed = null; }
+      
+      aiReply = parsed?.text || "No reply.";
+
     }
     
     // Job #2

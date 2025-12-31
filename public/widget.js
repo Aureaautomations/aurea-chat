@@ -530,7 +530,7 @@ async function getSiteContextV2() {
       switch (ctaType) {
         case "BOOK_NOW": return "Book now";
         case "CHOOSE_TIME": return "Choose a time";
-        case "LEAVE_CONTACT": return "Get started";
+        case "LEAVE_CONTACT": return "Leave contact info";
         case "ESCALATE": return "Contact the clinic";
         default: return "Book now";
       }
@@ -557,9 +557,12 @@ async function getSiteContextV2() {
       btn.textContent = ctaLabel(ctaType);
 
       btn.addEventListener("click", () => {
+        const isBookingCta = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType);
+      
         setSignal({
           lastCtaClicked: ctaType,
-          bookingPageOpened: true,
+          bookingPageOpened: isBookingCta ? true : false,
+          contactPageOpened: ctaType === "LEAVE_CONTACT" ? true : false,
         });
       });
     

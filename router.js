@@ -26,7 +26,7 @@ const RE = {
   bookingDelay: /\b(not yet|maybe later|later|not now|another time|i[' ]?ll book (later|another time)|i[' ]?ll do it later|tomorrow instead|after work|in a bit)\b/i,
   
   // Booking DECLINE (exit Job #2)
-  bookingDecline: /\b(no thanks|no thank you|nah|nope|don'?t want to book|not booking|stop|leave me alone|just browsing|just looking)\b/i,
+  bookingDecline: /\b(no thanks|no thank you|nah|nope|don'?t want to book|not booking|stop|leave me alone)\b/i,
 
   // No availability (Job #4)
   noAvailability: /\b(no times|nothing available|fully booked|no availability|sold out)\b/i,

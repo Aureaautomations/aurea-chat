@@ -97,7 +97,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
 
     // Decline means “do not continue booking flow”.
     // Treat "no availability" as NOT a decline — it's a capture-lead scenario.
-    bookingDecline: RE.bookingDecline.test(text),
+    bookingDecline: RE.bookingDecline.test(text) && !RE.browseIntent.test(text),
     noAvailability: RE.noAvailability.test(text),
     afterLeadCapture: lastJob === JOBS.JOB_4,
 

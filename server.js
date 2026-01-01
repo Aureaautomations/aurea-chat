@@ -193,6 +193,99 @@ function stripUrls(text) {
     .trim();
 }
 
+function buildDeterministicPricingReply(businessSummary) {
+  const p = businessSummary?.pricing;
+
+  // If pricing isn't present, be explicit and ask one short clarifier (Job #1 rules).
+  if (!p) {
+    return 'I don’t see pricing listed on this page. What do you want—services, how it works, or booking?';
+  }
+
+  // Normalize pricing into clean, fixed lines (no bullets).
+  const lines = [];
+
+  // Case 1: pricing is a simple string
+  if (typeof p === "string") {
+    lines.push(p.trim());
+  }
+
+  // Case 2: pricing is an array
+  else if (Array.isArray(p)) {
+    for (const item of p) {
+      if (!item) continue;
+      if (typeof item === "string") {
+        lines.push(item.trim());
+        continue;
+      }
+      if (typeof item === "object") {
+        const name = item.name || item.title || item.plan || item.service || "";
+        const price = item.price || item.amount || item.cost || "";
+        const duration = item.duration || item.length || "";
+        const parts = [name, price, duration].filter(Boolean).map(String);
+        if (parts.length) lines.push(parts.join(" — "));
+      }
+    }
+  }
+
+  // Case 3: pricing is an object (common shapes: {plans:[...]}, {items:[...]}, {packages:[...]}, etc.)
+  else if (typeof p === "object") {
+    const candidateArrays = [
+      p.plans,
+      p.items,
+      p.packages,
+      p.services,
+      p.options,
+      p.prices,
+    ];
+
+    const arr = candidateArrays.find(x => Array.isArray(x));
+
+    if (arr) {
+      for (const item of arr) {
+        if (!item) continue;
+        if (typeof item === "string") {
+          lines.push(item.trim());
+          continue;
+        }
+        if (typeof item === "object") {
+          const name = item.name || item.title || item.plan || item.service || "";
+          const price = item.price || item.amount || item.cost || "";
+          const duration = item.duration || item.length || "";
+          const parts = [name, price, duration].filter(Boolean).map(String);
+          if (parts.length) lines.push(parts.join(" — "));
+        }
+      }
+    } else {
+      // fallback: flatten top-level key/values
+      for (const [k, v] of Object.entries(p)) {
+        if (v == null) continue;
+        if (typeof v === "string" || typeof v === "number") {
+          lines.push(`${k}: ${String(v)}`.trim());
+        }
+      }
+    }
+  }
+
+  // Final fallback if we couldn't extract anything usable
+  if (!lines.length) {
+    return 'I don’t see clear pricing details in the page data. What service are you looking for?';
+  }
+
+  // Fixed format, deterministic, short. No greeting. One short question at end.
+  const clean = lines
+    .map(s => String(s || "").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .map(s => (s.length > 90 ? s.slice(0, 87) + "..." : s))
+    .slice(0, 8);
+  
+  const body = clean.join("\n");
+  
+  // total hard cap (prevents runaway blobs)
+  const finalBody = body.length > 600 ? body.slice(0, 597) + "..." : body;
+  
+  return `Pricing:\n${finalBody}\n\nWhat service are you considering?`;
+  }
+
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
@@ -284,9 +377,9 @@ app.post("/chat", async (req, res) => {
           JSON.stringify(businessSummary),
       },
     ];
-    
     // Deterministic CTA type (model never chooses)
-    const ctaType = route?.cta?.type || "BOOK_NOW";
+    const pricingIntent = !!route?.facts?.pricingIntent;
+    const ctaType = pricingIntent ? "LEAVE_CONTACT" : (route?.cta?.type || "BOOK_NOW");
     
     // IMPORTANT: CTA URL must match CTA type.
     // - CHOOSE_TIME / BOOK_NOW / CONFIRM_BOOKING should go to the bookingUrl (real booking page)
@@ -340,7 +433,18 @@ app.post("/chat", async (req, res) => {
 
         ...systemMessages,
       ];
-    
+
+      const pricingIntent = !!route?.facts?.pricingIntent;
+
+      if (pricingIntent) {
+        aiReply = stripUrls(buildDeterministicPricingReply(businessSummary));
+      } else {
+        const response = await openai.responses.create({
+          model: "gpt-4.1-mini",
+          input: [...jobMessages, ...inputMessages],
+          // IMPORTANT: no text.format here
+        });
+      
       const response = await openai.responses.create({
         model: "gpt-4.1-mini",
         input: [...jobMessages, ...inputMessages],
@@ -349,8 +453,8 @@ app.post("/chat", async (req, res) => {
     
       aiReply = stripUrls(response.output_text || "No reply.");
     }
-
-    // Job #2
+      
+      // Job #2
     else if (route.job === JOBS.JOB_2) {
       const f = route?.facts || {};
     

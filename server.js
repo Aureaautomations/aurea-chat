@@ -434,8 +434,6 @@ app.post("/chat", async (req, res) => {
         ...systemMessages,
       ];
 
-      const pricingIntent = !!route?.facts?.pricingIntent;
-
       if (pricingIntent) {
         aiReply = stripUrls(buildDeterministicPricingReply(businessSummary));  
       } else {
@@ -447,7 +445,7 @@ app.post("/chat", async (req, res) => {
     
       aiReply = stripUrls(job1Response.output_text || "No reply.");
     }
-      
+  }
       // Job #2
     else if (route.job === JOBS.JOB_2) {
       const f = route?.facts || {};

@@ -715,8 +715,11 @@ async function getSiteContextV2() {
 
       const d = await r.json();
 
-      if (d && d.route && d.route.facts) {
-        setSignal({ routerFacts: d.route.facts });
+      if (d && d.route) {
+        const patch = {};
+        if (d.route.facts) patch.routerFacts = d.route.facts;
+        if (d.route.job) patch.lastJob = d.route.job; // NEW
+        setSignal(patch);
       }
 
       removeTyping();

@@ -43,6 +43,8 @@ const RE = {
   dayHint: /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|this week|next week)\b/i,
   timeWindow: /\b(morning|afternoon|evening|tonight)\b/i,
   serviceInterest: /\b(sms|text|email|re-?engagement|welcome|lead capture|reminders?|reviews?)\b/i,
+
+  browseIntent: /\b(just browsing|just looking|browsing|looking around|curious|info|information|tell me about|what do you offer|services|pricing|price|cost|rates?|how does it work)\b/i,
 };
 
 // --- helpers ---
@@ -98,6 +100,8 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     bookingDecline: RE.bookingDecline.test(text),
     noAvailability: RE.noAvailability.test(text),
     afterLeadCapture: lastJob === JOBS.JOB_4,
+
+    browseIntent: RE.browseIntent.test(text),
 
     hasServiceSelected:
       RE.duration.test(text) ||
@@ -188,10 +192,10 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
 
   // 6) Job #1 Convert Visitor (default)
   const job1CtaType =
-  facts.afterLeadCapture || RE.pricingIntent.test(text)
+  facts.afterLeadCapture || facts.browseIntent || RE.pricingIntent.test(text)
     ? "LEAVE_CONTACT"
     : "BOOK_NOW";
- 
+
   return {
     job: JOBS.JOB_1,
     facts: mergedFacts,

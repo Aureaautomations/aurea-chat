@@ -44,7 +44,7 @@ const RE = {
   timeWindow: /\b(morning|afternoon|evening|tonight)\b/i,
   serviceInterest: /\b(sms|text|email|re-?engagement|welcome|lead capture|reminders?|reviews?)\b/i,
 
-  browseIntent: /\b(just browsing|just looking|browsing|looking around|curious|info|information|tell me about|what do you offer|services|pricing|price|cost|rates?|how does it work)\b/i,
+  browseIntent: /\b(just browsing|just looking|browsing|looking around|curious|info|information|tell me about|what do you offer|services|pricing|price|cost|rates?|how does it work|website( link)?|site( link)?|url|link)\b/i,
 };
 
 // --- helpers ---

@@ -304,6 +304,21 @@ app.post("/chat", async (req, res) => {
     if (route.job === JOBS.JOB_1) {
       const jobMessages = [
         { role: "system", content: JOB1_SYSTEM_PROMPT },
+      
+        // NEW: deterministic “browse mode” immediately after Job #4
+        ...(route?.facts?.afterLeadCapture
+          ? [{
+              role: "system",
+              content:
+                "CONTEXT: The user just declined booking or hit no availability and saw the lead-capture message.\n" +
+                "RULES FOR THIS TURN:\n" +
+                "- Do NOT greet (no 'Hi', no 'Hey', no generic welcome).\n" +
+                "- Do NOT push booking again.\n" +
+                "- Ask ONE short question about what they want to know (services, pricing, how it works).\n" +
+                "- Keep it to 1–3 sentences.\n"
+            }]
+          : []),
+      
         ...systemMessages,
       ];
     

@@ -81,6 +81,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const priorFacts = (s.routerFacts && typeof s.routerFacts === "object") ? s.routerFacts : {};
   const lastCtaClicked = safeString(s.lastCtaClicked); // e.g., "BOOK_NOW"
   const bookingPageOpened = Boolean(s.bookingPageOpened);
+  const lastJob = safeString(s.lastJob); // e.g., "JOB_4_CAPTURE_LEAD"
 
   // derived facts (deterministic booleans)
   const facts = {
@@ -96,6 +97,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     // Treat "no availability" as NOT a decline — it's a capture-lead scenario.
     bookingDecline: RE.bookingDecline.test(text),
     noAvailability: RE.noAvailability.test(text),
+    afterLeadCapture: lastJob === JOBS.JOB_4,
 
     hasServiceSelected:
       RE.duration.test(text) ||
@@ -185,10 +187,11 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   }
 
   // 6) Job #1 Convert Visitor (default)
-  const job1CtaType = RE.pricingIntent.test(text)
+  const job1CtaType =
+  facts.afterLeadCapture || RE.pricingIntent.test(text)
     ? "LEAVE_CONTACT"
     : "BOOK_NOW";
-  
+ 
   return {
     job: JOBS.JOB_1,
     facts: mergedFacts,

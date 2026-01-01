@@ -186,6 +186,8 @@ app.post("/chat", async (req, res) => {
     const history = sanitizeHistory(req.body?.history);
 
     // ✅ ROUTING (pre-model) — compute + log only, no behavior changes yet
+    console.log("[SIGNALS_IN]", req.body?.signals || null);
+    
     const route = routeMessage({
       message: userMessage || "",
       history: Array.isArray(history) ? history : [],

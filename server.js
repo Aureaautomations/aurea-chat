@@ -437,21 +437,15 @@ app.post("/chat", async (req, res) => {
       const pricingIntent = !!route?.facts?.pricingIntent;
 
       if (pricingIntent) {
-        aiReply = stripUrls(buildDeterministicPricingReply(businessSummary));
+        aiReply = stripUrls(buildDeterministicPricingReply(businessSummary));  
       } else {
-        const response = await openai.responses.create({
-          model: "gpt-4.1-mini",
-          input: [...jobMessages, ...inputMessages],
-          // IMPORTANT: no text.format here
-        });
-      
-      const response = await openai.responses.create({
+      const job1Response = await openai.responses.create({
         model: "gpt-4.1-mini",
         input: [...jobMessages, ...inputMessages],
         // IMPORTANT: no text.format here
       });
     
-      aiReply = stripUrls(response.output_text || "No reply.");
+      aiReply = stripUrls(job1Response.output_text || "No reply.");
     }
       
       // Job #2

@@ -178,6 +178,21 @@ function sanitizeHistory(history) {
     }));
 }
 
+function stripUrls(text) {
+  if (!text) return text;
+  return String(text)
+    // remove http(s) URLs
+    .replace(/\bhttps?:\/\/[^\s<]+/gi, "")
+    // remove www. URLs
+    .replace(/\bwww\.[^\s<]+/gi, "")
+    // remove bare domains like example.com/path
+    .replace(/\b[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s<]*)?/gi, "")
+    // clean extra whitespace
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
@@ -330,7 +345,7 @@ app.post("/chat", async (req, res) => {
         // IMPORTANT: no text.format here
       });
     
-      aiReply = response.output_text || "No reply.";
+      aiReply = stripUrls(response.output_text || "No reply.");
     }
 
     // Job #2

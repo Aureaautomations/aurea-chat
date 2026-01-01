@@ -102,6 +102,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     afterLeadCapture: lastJob === JOBS.JOB_4,
 
     browseIntent: RE.browseIntent.test(text),
+    pricingIntent: RE.pricingIntent.test(text),
 
     hasServiceSelected:
       RE.duration.test(text) ||
@@ -125,6 +126,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     desiredDay: facts.desiredDay || priorFacts.desiredDay || null,
     desiredTimeWindow: facts.desiredTimeWindow || priorFacts.desiredTimeWindow || null,
     serviceInterest: facts.serviceInterest || null,
+    pricingIntent: facts.pricingIntent || priorFacts.pricingIntent || false,
   };
 
   // ---- PRIORITY ORDER (LOCKED) ---- :contentReference[oaicite:1]{index=1}

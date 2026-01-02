@@ -174,7 +174,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const bookingInProgress =
     mergedFacts.bookingIntent === true || historyShowsBookingIntent(history);
   
-  if (bookingInProgress && !facts.bookingDecline && !facts.noAvailability && !mergedFacts.bookingBlocked &&) {
+  if (bookingInProgress && !facts.bookingDecline && !facts.noAvailability && !mergedFacts.bookingBlocked) {
     return {
       job: JOBS.JOB_2,
       facts: {

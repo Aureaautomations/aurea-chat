@@ -179,11 +179,11 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     };
   }
 
-  // 4) Job #3 Increase ABV (disabled until you explicitly enable it)
-  // if (...) return { job: JOBS.JOB_3, ... }
-
-  // 5) Job #4 Capture Lead
-  if (facts.noAvailability || facts.bookingDecline) {
+  // 5) Job #4 Capture Lead (one-shot per chat)
+  // Only offer lead capture if we haven't already offered it this conversation.
+  const leadOfferMade = Boolean(s.leadOfferMade);
+  
+  if ((facts.noAvailability || facts.bookingDecline) && !leadOfferMade) {
     return {
       job: JOBS.JOB_4,
       facts: mergedFacts,

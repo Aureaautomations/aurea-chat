@@ -154,6 +154,18 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       (Boolean(priorFacts.bookingBlocked) && !facts.bookingIntent) || facts.noAvailability,
   };
 
+  // Clear escalation flags unless this turn is actively escalating
+  const escalationTriggeredThisTurn =
+    RE.escalationSafety.test(text) ||
+    RE.escalationLegal.test(text) ||
+    RE.escalationMedical.test(text) ||
+    RE.escalationPrivacy.test(text) ||
+    RE.escalationStaffComplaint.test(text);
+  
+  if (!escalationTriggeredThisTurn) {
+    delete mergedFacts.escalationReason;
+  }
+
   // ---- PRIORITY ORDER (LOCKED) ---- :contentReference[oaicite:1]{index=1}
   // 1) Job #7 Escalation Gate
   let escalationReason = null;

@@ -34,6 +34,8 @@ function getClientConfig(clientIdRaw) {
   const allowedOrigins = Array.isArray(c.allowedOrigins)
     ? c.allowedOrigins.map(String).map(s => s.trim()).filter(Boolean)
     : [];
+  
+  if (!allowedOrigins.length) return null;
 
   return {
     clientId,

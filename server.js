@@ -101,6 +101,33 @@ function buildJob4Reply(routeFacts = {}) {
   );
 }
 
+function buildJob7Reply(routeFacts = {}) {
+  const r = String(routeFacts.escalationReason || "").toUpperCase();
+
+  if (r === "SAFETY") {
+    return "I can’t handle safety issues in chat. Please use the button below to contact the clinic right away.";
+  }
+
+  if (r === "LEGAL_DISPUTE") {
+    return "I can’t help with disputes or chargebacks in chat. Please use the button below so the team can handle this directly.";
+  }
+
+  if (r === "MEDICAL") {
+    return "I can’t provide medical advice. Please contact a clinician for medical questions. To reach the team about booking or clinic policies, use the button below.";
+  }
+
+  if (r === "STAFF_COMPLAINT") {
+    return "I’m sorry that happened. I can’t resolve staff complaints in chat. Please use the button below and include what happened, the date, and your name.";
+  }
+
+  if (r === "PRIVACY_REQUEST") {
+    return "I can’t process privacy or data requests in chat. Please use the button below so the team can handle it.";
+  }
+
+  // fallback
+  return "That needs a human decision. Please use the button below and the team will follow up.";
+}
+
 function buildBookingAck(facts = {}, lastUserText = "", bookingIntentThisTurn = false) {
   const day = facts.desiredDay || null;
   const tw = facts.desiredTimeWindow || null;
@@ -390,6 +417,7 @@ app.post("/chat", async (req, res) => {
     // ENV overrides (lets you force a real scheduler link when site extraction is wrong/missing)
     const BOOKING_URL_OVERRIDE = (process.env.AUREA_BOOKING_URL_OVERRIDE || "").trim();
     const CONTACT_URL_OVERRIDE = (process.env.AUREA_CONTACT_URL_OVERRIDE || "").trim();
+    const ESCALATE_URL_OVERRIDE = (process.env.AUREA_ESCALATE_URL_OVERRIDE || "").trim();
     
     const bookingUrl =
       (BOOKING_URL_OVERRIDE ? BOOKING_URL_OVERRIDE : (businessSummary?.bookingUrl || "")).trim() || null;
@@ -399,11 +427,19 @@ app.post("/chat", async (req, res) => {
         ? CONTACT_URL_OVERRIDE
         : (businessSummary?.contactUrl || "")
       ).trim() || null;
+
+    const escalateUrl =
+      (ESCALATE_URL_OVERRIDE
+        ? ESCALATE_URL_OVERRIDE
+        : (businessSummary?.contactUrl || contactUrl || "")
+      ).trim() || null;
     
     let ctaUrl = null;
     
     if (ctaType === "LEAVE_CONTACT") {
       ctaUrl = contactUrl;
+    } else if (ctaType === "ESCALATE") {
+      ctaUrl = escalateUrl;
     } else if (["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType)) {
       ctaUrl = bookingUrl;
     } else {
@@ -532,6 +568,11 @@ app.post("/chat", async (req, res) => {
 
     }
 
+    // Job #7 (deterministic — no OpenAI)
+    else if (route.job === JOBS.JOB_7) {
+      aiReply = buildJob7Reply(route?.facts || {});
+    }
+  
     // Job #4 (deterministic — no OpenAI)
     else if (route.job === JOBS.JOB_4) {
       aiReply = buildJob4Reply(route?.facts || {});

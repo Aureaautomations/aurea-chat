@@ -8,6 +8,27 @@
 
   const CONFIG = window.AUREA_CONFIG || {};
   const CLIENT_ID = (CONFIG.clientId || "").trim();
+
+  const MODE = (CONFIG.mode || "floating").toLowerCase();
+  const MOUNT_SELECTOR = CONFIG.mount || null;
+
+  if (!["floating", "embedded"].includes(MODE)) {
+    console.error("[Aurea Widget] Invalid mode. Use 'floating' or 'embedded'.");
+    return;
+  }
+  
+  let EMBED_MOUNT = null;
+  if (MODE === "embedded") {
+    if (!MOUNT_SELECTOR) {
+      console.error("[Aurea Widget] Embedded mode requires CONFIG.mount");
+      return;
+    }
+    EMBED_MOUNT = document.querySelector(MOUNT_SELECTOR);
+    if (!EMBED_MOUNT) {
+      console.error(`[Aurea Widget] Mount not found: ${MOUNT_SELECTOR}`);
+      return;
+    }
+  }
   
   if (!CLIENT_ID) {
     console.error("[Aurea Widget] Missing window.AUREA_CONFIG.clientId — widget will not start.");
@@ -355,40 +376,59 @@ async function getSiteContextV2() {
   // UI
   // -----------------------------
   
-  // Mount into <html> (not <body>) to avoid site-builder transforms clipping fixed panels.
   const AUREA_HOST = document.createElement("div");
   AUREA_HOST.id = "__aurea_host__";
-  AUREA_HOST.style.position = "fixed";
-  AUREA_HOST.style.inset = "0";
-  AUREA_HOST.style.zIndex = "2147483647"; // max-ish
-  AUREA_HOST.style.pointerEvents = "none"; // so it doesn't block the page
+  AUREA_HOST.style.pointerEvents = "none";
   AUREA_HOST.style.background = "transparent";
+  
+  if (MODE === "floating") {
+    AUREA_HOST.style.position = "fixed";
+    AUREA_HOST.style.inset = "0";
+    AUREA_HOST.style.zIndex = "2147483647";
+    document.documentElement.appendChild(AUREA_HOST);
+  } else {
+    // embedded
+    AUREA_HOST.style.position = "relative";
+    AUREA_HOST.style.width = "100%";
+    AUREA_HOST.style.zIndex = "auto";
+    EMBED_MOUNT.appendChild(AUREA_HOST);
+  }
 
-  // Attach to <html> to escape body-level transforms/overflow used by builders
-  document.documentElement.appendChild(AUREA_HOST);
-
-  const btn = document.createElement("button");
-  btn.textContent = "Chat";
-  btn.style.position = "fixed";
-  btn.style.right = "20px";
-  btn.style.bottom = "20px";
-  btn.style.zIndex = "999999";
-  btn.style.padding = "12px 14px";
-  btn.style.borderRadius = "999px";
-  btn.style.border = "1px solid #ddd";
-  btn.style.background = "#111";
-  btn.style.color = "#fff";
-  btn.style.cursor = "pointer";
-  btn.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
-  btn.style.pointerEvents = "auto";
-  AUREA_HOST.appendChild(btn);
-
+  let btn = null;
+  
+  if (MODE === "floating") {
+    btn = document.createElement("button");
+    btn.textContent = "Chat";
+    btn.style.position = "fixed";
+    btn.style.right = "20px";
+    btn.style.bottom = "20px";
+    btn.style.zIndex = "999999";
+    btn.style.padding = "12px 14px";
+    btn.style.borderRadius = "999px";
+    btn.style.border = "1px solid #ddd";
+    btn.style.background = "#111";
+    btn.style.color = "#fff";
+    btn.style.cursor = "pointer";
+    btn.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+    btn.style.pointerEvents = "auto";
+    AUREA_HOST.appendChild(btn);
+  }
+  
   const panel = document.createElement("div");
+
+  if (MODE === "floating") {
   panel.style.position = "fixed";
   panel.style.right = "20px";
   panel.style.bottom = "70px";
   panel.style.width = "min(340px, calc(100vw - 40px))";
   panel.style.height = "min(420px, calc(100vh - 120px))";
+} else {
+  panel.style.position = "relative";
+  panel.style.right = "auto";
+  panel.style.bottom = "auto";
+  panel.style.width = "100%";
+  panel.style.height = "420px";
+}
   panel.style.zIndex = "999999";
   panel.style.border = "1px solid #e5e5e5";
   panel.style.borderRadius = "14px";
@@ -402,18 +442,22 @@ async function getSiteContextV2() {
   panel.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
 
   panel.innerHTML = `
+  <div style="height:100%; display:flex; flex-direction:column;">
     <div style="padding:12px 14px; border-bottom:1px solid #eee; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
       <span>${BUSINESS_NAME}</span>
       <button id="aurea-newchat" style="font-size:12px; padding:6px 8px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer;">
         New
       </button>
     </div>
-    <div id="aurea-messages" style="padding:12px 14px; height:310px; overflow:auto; font-size:14px;"></div>
+
+    <div id="aurea-messages" style="padding:12px 14px; flex:1; overflow:auto; font-size:14px;"></div>
+
     <div style="padding:10px; border-top:1px solid #eee; display:flex; gap:8px;">
       <input id="aurea-input" placeholder="Type a message..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:10px;" />
       <button id="aurea-send" style="padding:10px 12px; border-radius:10px; border:1px solid #111; background:#111; color:#fff;">Send</button>
     </div>
-  `;
+  </div>
+`;
   
   panel.style.pointerEvents = "auto";
   AUREA_HOST.appendChild(panel);
@@ -436,34 +480,35 @@ async function getSiteContextV2() {
 
   // Some site builders hijack keyboard events.
   // This captures typing early and manually updates the input.
-  window.addEventListener(
-    "keydown",
-    (e) => {
-      if (document.activeElement !== inputEl) return;
-
-      // allow shortcuts
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      if (e.key === "Enter") {
-        e.preventDefault();
-        send();
-        return;
-      }
-
-      if (e.key === "Backspace") {
-        e.preventDefault();
-        inputEl.value = inputEl.value.slice(0, -1);
-        return;
-      }
-
-      if (e.key.length === 1) {
-        e.preventDefault();
-        inputEl.value += e.key;
-      }
-    },
-    true // capture phase
-  );
-
+  if (MODE === "floating") {
+    window.addEventListener(
+      "keydown",
+      (e) => {
+        if (document.activeElement !== inputEl) return;
+  
+        // allow shortcuts
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+  
+        if (e.key === "Enter") {
+          e.preventDefault();
+          send();
+          return;
+        }
+  
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          inputEl.value = inputEl.value.slice(0, -1);
+          return;
+        }
+  
+        if (e.key.length === 1) {
+          e.preventDefault();
+          inputEl.value += e.key;
+        }
+      },
+      true // capture phase
+    );
+  }
   
   function escapeHtml(str) {
   return String(str)
@@ -755,8 +800,8 @@ async function getSiteContextV2() {
       pushToHistory("assistant", reply);
       
       const ctaType = d.ctaType || "BOOK_NOW";
-      const ctaUrl = d.ctaUrl || d.bookingUrl || null;
-      
+      const ctaUrl = (typeof d.ctaUrl === "string" && d.ctaUrl.trim()) ? d.ctaUrl.trim() : null;
+
       // Job #4 one-shot gating: only mark leadOfferMade when Job #4 actually ran
       const job = d?.route?.job || "";
       if (job === "JOB_4_CAPTURE_LEAD") {
@@ -772,49 +817,53 @@ async function getSiteContextV2() {
     }
   }
 
-  btn.onclick = () => {
-    const isClosed = panel.style.display === "none";
-
-    if (isClosed) {
-      panel.style.display = "block";
-      requestAnimationFrame(() => {
-        panel.style.opacity = "1";
-        panel.style.transform = "translateY(0)";
-      });
-
-      // Render history (or greeting) when opened
-      const history = loadHistory();
-      if (history.length) {
-        renderHistoryIntoUI();
+  if (btn) {
+    btn.onclick = () => {
+      const isClosed = panel.style.display === "none";
+  
+      if (isClosed) {
+        panel.style.display = "block";
+        requestAnimationFrame(() => {
+          panel.style.opacity = "1";
+          panel.style.transform = "translateY(0)";
+        });
+  
+        const history = loadHistory();
+        if (history.length) {
+          renderHistoryIntoUI();
+        } else {
+          add("assistant", GREETING);
+          pushToHistory("assistant", GREETING);
+          historyRendered = true;
+        }
+  
+        setTimeout(() => inputEl.focus(), 0);
       } else {
-        // Only greet once and persist it
-        add("assistant", GREETING);
-        pushToHistory("assistant", GREETING);
-        historyRendered = true; // prevents later renderHistory from duplicating
+        panel.style.opacity = "0";
+        panel.style.transform = "translateY(8px)";
+        setTimeout(() => {
+          panel.style.display = "none";
+        }, 170);
       }
+    };
+  }
 
-      setTimeout(() => inputEl.focus(), 0);
-    } else {
-      panel.style.opacity = "0";
-      panel.style.transform = "translateY(8px)";
-      setTimeout(() => {
-        panel.style.display = "none";
-      }, 170);
-    }
-  };
+  if (MODE === "embedded") {
+  // show panel immediately in embedded mode
+  panel.style.display = "block";
+  panel.style.opacity = "1";
+  panel.style.transform = "translateY(0)";
 
-  document.addEventListener("mousedown", (e) => {
-    if (panel.style.display === "none") return;
-    const clickedInsidePanel = panel.contains(e.target);
-    const clickedButton = btn.contains(e.target);
-    if (!clickedInsidePanel && !clickedButton) {
-      panel.style.opacity = "0";
-      panel.style.transform = "translateY(8px)";
-      setTimeout(() => {
-        panel.style.display = "none";
-      }, 170);
-    }
-  });
+  // Render history (or greeting) immediately
+  const history = loadHistory();
+  if (history.length) {
+    renderHistoryIntoUI();
+  } else {
+    add("assistant", GREETING);
+    pushToHistory("assistant", GREETING);
+    historyRendered = true;
+  }
+}
 
   sendEl.onclick = send;
   // Note: we no longer auto-add greeting on load.

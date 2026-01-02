@@ -75,7 +75,12 @@ app.use((req, res, next) => {
   }
 
   const clientId =
-    (req.headers["x-aurea-client-id"] || req.body?.clientId || "").toString().trim();
+    (
+      req.headers["x-aurea-client-id"] ||
+      req.query?.clientId ||
+      req.body?.clientId ||
+      ""
+    ).toString().trim();
 
   // Always advertise the headers/methods we accept
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Aurea-Client-Id");

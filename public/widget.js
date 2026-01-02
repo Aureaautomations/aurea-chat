@@ -14,8 +14,8 @@
     return;
   }
   
-  const BUSINESS_NAME = CONFIG.businessName || "Aurea";
-  const GREETING = CONFIG.greeting || "Hey! I’m Aurea. How can I help?";
+  const BUSINESS_NAME = CONFIG.businessName || "Support";
+  const GREETING = CONFIG.greeting || "Hi — how can I help?";
 
   let __aurea_sitewide_cache = null;
   let __aurea_sitewide_cache_at = 0;

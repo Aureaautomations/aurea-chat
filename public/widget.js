@@ -354,6 +354,19 @@ async function getSiteContextV2() {
   // -----------------------------
   // UI
   // -----------------------------
+  
+  // Mount into <html> (not <body>) to avoid site-builder transforms clipping fixed panels.
+  const AUREA_HOST = document.createElement("div");
+  AUREA_HOST.id = "__aurea_host__";
+  AUREA_HOST.style.position = "fixed";
+  AUREA_HOST.style.inset = "0";
+  AUREA_HOST.style.zIndex = "2147483647"; // max-ish
+  AUREA_HOST.style.pointerEvents = "none"; // so it doesn't block the page
+  AUREA_HOST.style.background = "transparent";
+
+  // Attach to <html> to escape body-level transforms/overflow used by builders
+  document.documentElement.appendChild(AUREA_HOST);
+
   const btn = document.createElement("button");
   btn.textContent = "Chat";
   btn.style.position = "fixed";
@@ -367,7 +380,8 @@ async function getSiteContextV2() {
   btn.style.color = "#fff";
   btn.style.cursor = "pointer";
   btn.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
-  document.body.appendChild(btn);
+  btn.style.pointerEvents = "auto";
+  AUREA_HOST.appendChild(btn);
 
   const panel = document.createElement("div");
   panel.style.position = "fixed";
@@ -400,8 +414,9 @@ async function getSiteContextV2() {
       <button id="aurea-send" style="padding:10px 12px; border-radius:10px; border:1px solid #111; background:#111; color:#fff;">Send</button>
     </div>
   `;
-
-  document.body.appendChild(panel);
+  
+  panel.style.pointerEvents = "auto";
+  AUREA_HOST.appendChild(panel);
 
   const messagesEl = panel.querySelector("#aurea-messages");
   const inputEl = panel.querySelector("#aurea-input");

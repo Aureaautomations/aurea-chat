@@ -1,0 +1,13 @@
+{
+  "amplify": {
+    "clientId": "amplify",
+    "allowedOrigins": [
+      "https://amplifyhealthcollective.com",
+      "https://www.amplifyhealthcollective.com"
+    ],
+    "bookingUrlOverride": "",
+    "contactUrlOverride": "",
+    "escalateUrlOverride": "",
+    "jobDisables": {}
+  }
+}

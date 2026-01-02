@@ -155,7 +155,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   if (
     !facts.noAvailability &&
     !facts.bookingDecline &&
-    !mergedFacts.bookingBlocked
+    !mergedFacts.bookingBlocked &&
     (
       ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
       RE.bookingIntent.test(text) ||

@@ -84,6 +84,11 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const lastCtaClicked = safeString(s.lastCtaClicked); // e.g., "BOOK_NOW"
   const bookingPageOpened = Boolean(s.bookingPageOpened);
   const lastJob = safeString(s.lastJob); // e.g., "JOB_4_CAPTURE_LEAD"
+  const bookingContext =
+    bookingPageOpened ||
+    ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
+    Boolean(priorFacts.bookingIntent) ||
+    historyShowsBookingIntent(history);
 
   // derived facts (deterministic booleans)
   const facts = {
@@ -97,7 +102,12 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
 
     // Decline means “do not continue booking flow”.
     // Treat "no availability" as NOT a decline — it's a capture-lead scenario.
-    bookingDecline: RE.bookingDecline.test(text) && !RE.browseIntent.test(text),
+    bookingDecline:
+      bookingContext &&
+      RE.bookingDecline.test(text) &&
+      !RE.browseIntent.test(text) &&
+      !RE.noAvailability.test(text),
+    
     noAvailability: RE.noAvailability.test(text),
     afterLeadCapture: Boolean(s.leadOfferMade),
 

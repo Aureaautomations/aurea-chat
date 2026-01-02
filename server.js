@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const { routeMessage, JOBS } = require("./router");
+const { getClientConfig, isOriginAllowed } = require("./clients");
 
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -59,13 +60,58 @@ const JOB2_RESPONSE_SCHEMA = {
 
 app.use(express.json());
 
-// Allow requests from your frontend (including file:// during dev)
+// CORS + Origin allowlist (per-client). IMPORTANT: clientId must be in header for OPTIONS preflight.
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  const origin = req.headers.origin || null;
 
-  if (req.method === "OPTIONS") return res.sendStatus(200);
+  // Only enforce allowlist on /chat (marketing site/static assets can remain public)
+  if (req.path !== "/chat") {
+    // minimal CORS for non-/chat endpoints (optional)
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+    }
+    return next();
+  }
+
+  const clientId =
+    (req.headers["x-aurea-client-id"] || req.body?.clientId || "").toString().trim();
+
+  // Always advertise the headers/methods we accept
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Aurea-Client-Id");
+  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
+
+  // Preflight requests do NOT include JSON body — header is required
+  if (!clientId) {
+    // Fail closed
+    if (req.method === "OPTIONS") return res.sendStatus(403);
+    return res.status(400).json({ error: "Missing clientId" });
+  }
+
+  const client = getClientConfig(clientId);
+  if (!client) {
+    if (req.method === "OPTIONS") return res.sendStatus(403);
+    return res.status(403).json({ error: "Invalid clientId" });
+  }
+
+  // Origin is required for browser calls; allow server-to-server calls with no Origin header
+  if (origin) {
+    const ok = isOriginAllowed(origin, client);
+    if (!ok) {
+      if (req.method === "OPTIONS") return res.sendStatus(403);
+      return res.status(403).json({ error: "Origin not allowed" });
+    }
+
+    // Set CORS for allowed origin
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+
+  // If preflight passed, return success now
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+
+  // attach clientConfig for /chat handler
+  req.aureaClient = client;
 
   next();
 });
@@ -349,6 +395,14 @@ app.post("/chat", async (req, res) => {
     const userMessage = req.body?.message;
     const conversationId = req.body?.conversationId; // optional for now
     const history = sanitizeHistory(req.body?.history);
+    const clientId =
+      (req.headers["x-aurea-client-id"] || req.body?.clientId || "").toString().trim();
+
+    // middleware already validated this for /chat, but keep a hard check
+    const client = req.aureaClient || getClientConfig(clientId);
+    if (!client) {
+      return res.status(403).json({ error: "Invalid client" });
+    }
 
     // ✅ ROUTING (pre-model) — compute + log only, no behavior changes yet
     console.log("[SIGNALS_IN]", req.body?.signals || null);
@@ -359,7 +413,13 @@ app.post("/chat", async (req, res) => {
       signals: req.body?.signals || {},
       channel: req.body?.channel || "widget",
     });
-    
+
+    // Optional per-client job disables (fail-safe to JOB_1)
+    if (client?.jobDisables && client.jobDisables[route.job] === true) {
+      route.job = JOBS.JOB_1;
+      route.cta = { type: "BOOK_NOW" };
+    }
+
     console.log("[ROUTE]", route);
     console.log("[ROUTER_FACTS]", {
       desiredDay: route?.facts?.desiredDay || null,
@@ -442,26 +502,21 @@ app.post("/chat", async (req, res) => {
     // - CHOOSE_TIME / BOOK_NOW / CONFIRM_BOOKING should go to the bookingUrl (real booking page)
     // - LEAVE_CONTACT should go to a lead/contact page (if you have one)
     
-    // ENV overrides (lets you force a real scheduler link when site extraction is wrong/missing)
+    // ENV overrides (global fallback)
     const BOOKING_URL_OVERRIDE = (process.env.AUREA_BOOKING_URL_OVERRIDE || "").trim();
     const CONTACT_URL_OVERRIDE = (process.env.AUREA_CONTACT_URL_OVERRIDE || "").trim();
     const ESCALATE_URL_OVERRIDE = (process.env.AUREA_ESCALATE_URL_OVERRIDE || "").trim();
     
+    // Per-client overrides win, then env, then extracted site summary
     const bookingUrl =
-      (BOOKING_URL_OVERRIDE ? BOOKING_URL_OVERRIDE : (businessSummary?.bookingUrl || "")).trim() || null;
+      (client?.bookingUrlOverride || BOOKING_URL_OVERRIDE || businessSummary?.bookingUrl || "").trim() || null;
     
     const contactUrl =
-      (CONTACT_URL_OVERRIDE
-        ? CONTACT_URL_OVERRIDE
-        : (businessSummary?.contactUrl || "")
-      ).trim() || null;
-
-    const escalateUrl =
-      (ESCALATE_URL_OVERRIDE
-        ? ESCALATE_URL_OVERRIDE
-        : (businessSummary?.contactUrl || contactUrl || "")
-      ).trim() || null;
+      (client?.contactUrlOverride || CONTACT_URL_OVERRIDE || businessSummary?.contactUrl || "").trim() || null;
     
+    const escalateUrl =
+      (client?.escalateUrlOverride || ESCALATE_URL_OVERRIDE || businessSummary?.contactUrl || contactUrl || "").trim() || null;
+
     let ctaUrl = null;
     
     if (ctaType === "LEAVE_CONTACT") {

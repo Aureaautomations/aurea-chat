@@ -730,6 +730,12 @@ async function getSiteContextV2() {
       
       const ctaType = d.ctaType || "BOOK_NOW";
       const ctaUrl = d.ctaUrl || d.bookingUrl || null;
+      
+      // Job #4 one-shot gating: once we OFFER lead capture, never offer again this chat
+      if (ctaType === "LEAVE_CONTACT") {
+        setSignal({ leadOfferMade: true });
+      }
+      
       renderDeterministicCTA(ctaType, ctaUrl);
       
     } catch {

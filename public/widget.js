@@ -387,8 +387,8 @@ async function getSiteContextV2() {
   panel.style.position = "fixed";
   panel.style.right = "20px";
   panel.style.bottom = "70px";
-  panel.style.width = "340px";
-  panel.style.height = "420px";
+  panel.style.width = "min(340px, calc(100vw - 40px))";
+  panel.style.height = "min(420px, calc(100vh - 120px))";
   panel.style.zIndex = "999999";
   panel.style.border = "1px solid #e5e5e5";
   panel.style.borderRadius = "14px";

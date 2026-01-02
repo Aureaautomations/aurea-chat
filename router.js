@@ -126,7 +126,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     desiredDay: facts.desiredDay || priorFacts.desiredDay || null,
     desiredTimeWindow: facts.desiredTimeWindow || priorFacts.desiredTimeWindow || null,
     serviceInterest: facts.serviceInterest || null,
-    pricingIntent: facts.pricingIntent || priorFacts.pricingIntent || false,
+    pricingIntent: facts.pricingIntent || false,
   };
 
   // ---- PRIORITY ORDER (LOCKED) ---- :contentReference[oaicite:1]{index=1}

@@ -711,7 +711,7 @@ async function getSiteContextV2() {
         __aurea_sitewide_cache_at = Date.now();
       }
   
-    const r = await fetch("https://chat.aureaautomations.com/chat", {
+    const r = await fetch(`https://chat.aureaautomations.com/chat?clientId=${encodeURIComponent(CLIENT_ID)}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

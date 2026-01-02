@@ -507,20 +507,23 @@ app.post("/chat", async (req, res) => {
     // - CHOOSE_TIME / BOOK_NOW / CONFIRM_BOOKING should go to the bookingUrl (real booking page)
     // - LEAVE_CONTACT should go to a lead/contact page (if you have one)
     
-    // ENV overrides (global fallback)
+    // ENV overrides should NEVER apply across clients.
+    // Only allow env overrides for the "aurea" client as a last-resort fallback.
     const BOOKING_URL_OVERRIDE = (process.env.AUREA_BOOKING_URL_OVERRIDE || "").trim();
     const CONTACT_URL_OVERRIDE = (process.env.AUREA_CONTACT_URL_OVERRIDE || "").trim();
     const ESCALATE_URL_OVERRIDE = (process.env.AUREA_ESCALATE_URL_OVERRIDE || "").trim();
     
-    // Per-client overrides win, then env, then extracted site summary
+    const allowEnvFallback = client?.clientId === "aurea";
+    
+    // Per-client override wins, then site summary, then (aurea-only) env fallback.
     const bookingUrl =
-      (client?.bookingUrlOverride || BOOKING_URL_OVERRIDE || businessSummary?.bookingUrl || "").trim() || null;
+      (client?.bookingUrlOverride || businessSummary?.bookingUrl || (allowEnvFallback ? BOOKING_URL_OVERRIDE : "") || "").trim() || null;
     
     const contactUrl =
-      (client?.contactUrlOverride || CONTACT_URL_OVERRIDE || businessSummary?.contactUrl || "").trim() || null;
+      (client?.contactUrlOverride || businessSummary?.contactUrl || (allowEnvFallback ? CONTACT_URL_OVERRIDE : "") || "").trim() || null;
     
     const escalateUrl =
-      (client?.escalateUrlOverride || ESCALATE_URL_OVERRIDE || businessSummary?.contactUrl || contactUrl || "").trim() || null;
+      (client?.escalateUrlOverride || businessSummary?.contactUrl || contactUrl || (allowEnvFallback ? ESCALATE_URL_OVERRIDE : "") || "").trim() || null;
 
     let ctaUrl = null;
     

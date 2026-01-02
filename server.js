@@ -315,6 +315,22 @@ function buildDeterministicPricingReply(businessSummary) {
   return `Pricing:\n${finalBody}\n\nWhat service are you considering?`;
   }
 
+function logEscalationEvent({ conversationId, route, meta, siteKey }) {
+  const payload = {
+    event: "AUREA_ESCALATION",
+    ts: new Date().toISOString(),
+    conversationId: conversationId || null,
+    escalationReason: route?.facts?.escalationReason || null,
+    routerBuild: route?._routerBuild || null,
+    pageUrl: meta?.pageUrl || null,
+    businessName: meta?.businessName || null,
+    siteKey: siteKey || null,
+  };
+
+  // One JSON line so it’s easy to search/export later
+  console.log(JSON.stringify(payload));
+}
+
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
@@ -565,14 +581,14 @@ app.post("/chat", async (req, res) => {
         : fallbackJob2Tail({ desiredDay, desiredTimeWindow });
 
       aiReply = `${ack}\n\n${tail}`;
-
     }
 
     // Job #7 (deterministic — no OpenAI)
     else if (route.job === JOBS.JOB_7) {
+      logEscalationEvent({ conversationId, route, meta, siteKey });
       aiReply = buildJob7Reply(route?.facts || {});
     }
-  
+
     // Job #4 (deterministic — no OpenAI)
     else if (route.job === JOBS.JOB_4) {
       aiReply = buildJob4Reply(route?.facts || {});

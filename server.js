@@ -79,23 +79,25 @@ function buildJob4Reply(routeFacts = {}) {
   const noAvail = !!routeFacts.noAvailability;
   const declined = !!routeFacts.bookingDecline;
 
+  // A) No availability
   if (noAvail) {
     return (
-      "No problem — it looks like there aren’t any times that match right now.\n\n" +
-      "If you leave your contact info, we’ll follow up with options."
+      "Got it — there aren’t any times that fit right now.\n\n" +
+      "If you leave your email or phone, I’ll follow up when a good opening comes up and include the best options."
     );
   }
 
+  // B) Explicit booking decline
   if (declined) {
     return (
       "No problem.\n\n" +
-      "If you want, leave your contact info and we can follow up—otherwise feel free to keep browsing."
+      "If you leave your email or phone, I can send you the key details to review later so you don’t have to keep checking back."
     );
   }
 
-  // generic capture-lead fallback
+  // C) Fallback (should be rare)
   return (
-    "If you’d like, leave your contact info and we’ll follow up."
+    "If you leave your email or phone, I can follow up with the details you were looking for."
   );
 }
 
@@ -395,7 +397,7 @@ app.post("/chat", async (req, res) => {
     const contactUrl =
       (CONTACT_URL_OVERRIDE
         ? CONTACT_URL_OVERRIDE
-        : (businessSummary?.contactUrl || businessSummary?.bookingUrl || "")
+        : (businessSummary?.contactUrl || "")
       ).trim() || null;
     
     let ctaUrl = null;

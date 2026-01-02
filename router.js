@@ -16,8 +16,17 @@ const ROUTER_BUILD = "router-build-2025-12-30-01";
 
 // --- keyword/regex detectors (keep these tight + auditable) ---
 const RE = {
-  // Job #7 triggers (examples from your spec: legal/medical, threats, chargebacks, harassment, therapist complaint)
-  escalation: /\b(diagnose|treat|medical advice|should i take|lawsuit|sue|legal advice|chargeback|refund dispute|fraud|harass|threat|unsafe|injury|complain(t)?|staff issue)\b/i,
+  
+  // Job #7 triggers (tight + auditable)
+  escalationSafety: /\b(threat(en)?|kill|hurt|attack|violence|weapon|stalk(ing)?|harass(ment)?|unsafe|danger)\b/i,
+  
+  escalationLegal: /\b(chargeback|dispute|lawsuit|sue|attorney|lawyer|legal action|fraud|scam|report you)\b/i,
+  
+  escalationMedical: /\b(diagnose|diagnosis|medical advice|treat(ment)? advice|is it safe|contraindication|pregnan(t|cy)|symptom(s)?)\b/i,
+  
+  escalationStaffComplaint: /\b(complain(t)?|complaint|rude|unprofessional|assault|inappropriate|touched me|injured me|refund)\b/i,
+  
+  escalationPrivacy: /\b(delete my data|remove my data|privacy request|PIPEDA|PHIPA|HIPAA|GDPR)\b/i,
 
   bookingIntent: /\b(book|booking|schedule|appointment|times?|today|tomorrow|this week|next week)\b/i,
   availabilityIntent: /\b(availability|available)\b/i,
@@ -147,10 +156,18 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
 
   // ---- PRIORITY ORDER (LOCKED) ---- :contentReference[oaicite:1]{index=1}
   // 1) Job #7 Escalation Gate
-  if (RE.escalation.test(text)) {
+  let escalationReason = null;
+
+  if (RE.escalationSafety.test(text)) escalationReason = "SAFETY";
+  else if (RE.escalationLegal.test(text)) escalationReason = "LEGAL_DISPUTE";
+  else if (RE.escalationMedical.test(text)) escalationReason = "MEDICAL";
+  else if (RE.escalationPrivacy.test(text)) escalationReason = "PRIVACY_REQUEST";
+  else if (RE.escalationStaffComplaint.test(text)) escalationReason = "STAFF_COMPLAINT";
+  
+  if (escalationReason) {
     return {
       job: JOBS.JOB_7,
-      facts: mergedFacts,
+      facts: { ...mergedFacts, escalationReason },
       cta: { type: "ESCALATE" },
       _routerBuild: ROUTER_BUILD,
     };

@@ -1,4 +1,15 @@
 {
+  "aurea": {
+    "clientId": "aurea",
+    "allowedOrigins": [
+      "https://aureaautomations.com",
+      "https://www.aureaautomations.com"
+    ],
+    "bookingUrlOverride": "",
+    "contactUrlOverride": "",
+    "escalateUrlOverride": "",
+    "jobDisables": {}
+  },
   "amplify": {
     "clientId": "amplify",
     "allowedOrigins": [

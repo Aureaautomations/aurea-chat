@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const CLIENTS_PATH = path.join(__dirname, "clients.json");
 
@@ -13,8 +14,23 @@ function loadClients() {
   const now = Date.now();
   if (_cache && (now - _cacheAt) < CACHE_MS) return _cache;
 
-  const raw = fs.readFileSync(CLIENTS_PATH, "utf8");
-  const parsed = JSON.parse(raw);
+const raw = fs.readFileSync(CLIENTS_PATH, "utf8");
+
+// DEBUG: prove which clients.json is loaded in prod + detect stale builds
+try {
+  const stat = fs.statSync(CLIENTS_PATH);
+  const hash = crypto.createHash("sha256").update(raw).digest("hex").slice(0, 12);
+  console.log("[CLIENTS_JSON_LOAD]", {
+    path: CLIENTS_PATH,
+    mtime: stat.mtime.toISOString(),
+    bytes: Buffer.byteLength(raw, "utf8"),
+    hash,
+  });
+} catch (e) {
+  console.log("[CLIENTS_JSON_LOAD_ERROR]", { path: CLIENTS_PATH, error: String(e?.message || e) });
+}
+ 
+const parsed = JSON.parse(raw);
 
   _cache = parsed && typeof parsed === "object" ? parsed : {};
   _cacheAt = now;

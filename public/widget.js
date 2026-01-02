@@ -7,6 +7,13 @@
   console.log(`[Aurea Widget] loaded v${window.__AUREA_WIDGET_VERSION__}`);
 
   const CONFIG = window.AUREA_CONFIG || {};
+  const CLIENT_ID = (CONFIG.clientId || "").trim();
+  
+  if (!CLIENT_ID) {
+    console.error("[Aurea Widget] Missing window.AUREA_CONFIG.clientId — widget will not start.");
+    return;
+  }
+  
   const BUSINESS_NAME = CONFIG.businessName || "Aurea";
   const GREETING = CONFIG.greeting || "Hey! I’m Aurea. How can I help?";
 
@@ -689,22 +696,26 @@ async function getSiteContextV2() {
         __aurea_sitewide_cache_at = Date.now();
       }
   
-      const r = await fetch("https://chat.aureaautomations.com/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          message: text,
-          history,
-          signals,
-          siteContext, // ✅ ADD THIS LINE (right above meta is perfect)
-          meta: {
-            businessName: BUSINESS_NAME,
-            pageUrl: window.location.href,
-            pageTitle: document.title,
-          },
-        }),
-      });
+    const r = await fetch("https://chat.aureaautomations.com/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Aurea-Client-Id": CLIENT_ID,
+      },
+      body: JSON.stringify({
+        clientId: CLIENT_ID,
+        conversationId,
+        message: text,
+        history,
+        signals,
+        siteContext,
+        meta: {
+          businessName: BUSINESS_NAME,
+          pageUrl: window.location.href,
+          pageTitle: document.title,
+        },
+      }),
+    });
 
       if (!r.ok) {
         removeTyping();

@@ -117,6 +117,8 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
 
     // leave false for now; you are NOT implementing Job #3 yet
     upgradeEligible: false,
+
+    bookingBlocked: Boolean(priorFacts.bookingBlocked),
   };
 
   const mergedFacts = {
@@ -127,6 +129,10 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     desiredTimeWindow: facts.desiredTimeWindow || priorFacts.desiredTimeWindow || null,
     serviceInterest: facts.serviceInterest || null,
     pricingIntent: facts.pricingIntent || false,
+    // NEW: once noAvailability happens, block Job #2 from re-entering
+    // Clear ONLY when a fresh booking intent happens (book words or booking CTA click)
+    bookingBlocked:
+      (Boolean(priorFacts.bookingBlocked) && !facts.bookingIntent) || facts.noAvailability,
   };
 
   // ---- PRIORITY ORDER (LOCKED) ---- :contentReference[oaicite:1]{index=1}
@@ -149,6 +155,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   if (
     !facts.noAvailability &&
     !facts.bookingDecline &&
+    !mergedFacts.bookingBlocked
     (
       ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
       RE.bookingIntent.test(text) ||
@@ -167,7 +174,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const bookingInProgress =
     mergedFacts.bookingIntent === true || historyShowsBookingIntent(history);
   
-  if (bookingInProgress && !facts.bookingDecline && !facts.noAvailability) {
+  if (bookingInProgress && !facts.bookingDecline && !facts.noAvailability && !mergedFacts.bookingBlocked) {
     return {
       job: JOBS.JOB_2,
       facts: {

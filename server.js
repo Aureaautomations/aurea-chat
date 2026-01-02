@@ -537,6 +537,24 @@ app.post("/chat", async (req, res) => {
       ctaUrl = bookingUrl;
     }
 
+    // Hard fail: never return booking CTAs without a URL
+    const needsUrl = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING", "LEAVE_CONTACT", "ESCALATE"].includes(ctaType);
+    
+    if (needsUrl && (!ctaUrl || typeof ctaUrl !== "string" || !ctaUrl.trim())) {
+      console.error("[CTA_MISSING_URL]", {
+        clientId: client?.clientId || clientId,
+        ctaType,
+        bookingUrl,
+        contactUrl,
+        escalateUrl,
+        siteKey,
+        pageUrl: meta?.pageUrl || null,
+      });
+    
+      // Return a safe reply with NO CTA (widget will hide it)
+      ctaUrl = null;
+    }
+
     let aiReply = "How can I help you book today?";
     
     // Job #1 (plain text — NO structured output)

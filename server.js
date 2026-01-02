@@ -315,7 +315,7 @@ function buildDeterministicPricingReply(businessSummary) {
   return `Pricing:\n${finalBody}\n\nWhat service are you considering?`;
   }
 
-function logEscalationEvent({ conversationId, route, meta, siteKey }) {
+function logEscalationEvent({ conversationId, route, meta, siteKey, channel, message }) {
   const payload = {
     event: "AUREA_ESCALATION",
     ts: new Date().toISOString(),
@@ -325,10 +325,22 @@ function logEscalationEvent({ conversationId, route, meta, siteKey }) {
     pageUrl: meta?.pageUrl || null,
     businessName: meta?.businessName || null,
     siteKey: siteKey || null,
+    channel: channel || "unknown",
+    messageHash: hashMessage(message),
   };
 
-  // One JSON line so it’s easy to search/export later
   console.log(JSON.stringify(payload));
+}
+
+const crypto = require("crypto");
+
+function hashMessage(text) {
+  if (!text || typeof text !== "string") return null;
+  return crypto
+    .createHash("sha256")
+    .update(text)
+    .digest("hex")
+    .slice(0, 16); // short, non-reversible fingerprint
 }
 
 // NEW: chat endpoint (memory-aware)
@@ -585,7 +597,14 @@ app.post("/chat", async (req, res) => {
 
     // Job #7 (deterministic — no OpenAI)
     else if (route.job === JOBS.JOB_7) {
-      logEscalationEvent({ conversationId, route, meta, siteKey });
+      logEscalationEvent({
+        conversationId,
+        route,
+        meta,
+        siteKey,
+        channel: req.body?.channel || "widget",
+        message: userMessage,
+      });
       aiReply = buildJob7Reply(route?.facts || {});
     }
 

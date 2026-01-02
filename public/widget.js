@@ -731,8 +731,9 @@ async function getSiteContextV2() {
       const ctaType = d.ctaType || "BOOK_NOW";
       const ctaUrl = d.ctaUrl || d.bookingUrl || null;
       
-      // Job #4 one-shot gating: once we OFFER lead capture, never offer again this chat
-      if (ctaType === "LEAVE_CONTACT") {
+      // Job #4 one-shot gating: only mark leadOfferMade when Job #4 actually ran
+      const job = d?.route?.job || "";
+      if (job === "JOB_4_CAPTURE_LEAD") {
         setSignal({ leadOfferMade: true });
       }
       

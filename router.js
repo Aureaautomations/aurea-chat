@@ -44,7 +44,7 @@ const RE = {
   timeWindow: /\b(morning|afternoon|evening|tonight)\b/i,
   serviceInterest: /\b(sms|text|email|re-?engagement|welcome|lead capture|reminders?|reviews?)\b/i,
 
-  browseIntent: /\b(just browsing|just looking|browsing|looking around|curious|info|information|tell me about|what do you offer|services|pricing|price|cost|rates?|how does it work|website( link)?|site( link)?|url|link)\b/i,
+  browseIntent: /\b(just browsing|just looking|browsing|looking around|curious|info|information|tell me about|what do you offer|services|how does it work|website( link)?|site( link)?|url|link)\b/i,
 };
 
 // --- helpers ---
@@ -102,7 +102,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     afterLeadCapture: lastJob === JOBS.JOB_4,
 
     browseIntent: RE.browseIntent.test(text),
-    pricingIntent: RE.pricingIntent.test(text),
+    pricingIntent: RE.pricingIntent.test(text) && !RE.browseIntent.test(text),
 
     hasServiceSelected:
       RE.duration.test(text) ||

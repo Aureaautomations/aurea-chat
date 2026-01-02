@@ -10,9 +10,13 @@
     "escalateUrlOverride": "",
     "jobDisables": {}
   },
+
   "amplify": {
     "clientId": "amplify",
     "allowedOrigins": [
+      "https://aureaautomations.com",
+      "https://www.aureaautomations.com",
+
       "https://amplifyhealthcollective.com",
       "https://www.amplifyhealthcollective.com"
     ],

@@ -409,6 +409,13 @@ app.post("/chat", async (req, res) => {
       return res.status(403).json({ error: "Invalid client" });
     }
 
+    console.log("[CLIENT_RESOLVED]", {
+      clientId: client.clientId,
+      bookingUrlOverride: client.bookingUrlOverride || null,
+      contactUrlOverride: client.contactUrlOverride || null,
+      escalateUrlOverride: client.escalateUrlOverride || null,
+    });
+
     // ✅ ROUTING (pre-model) — compute + log only, no behavior changes yet
     console.log("[SIGNALS_IN]", req.body?.signals || null);
     
@@ -536,6 +543,17 @@ app.post("/chat", async (req, res) => {
     } else {
       ctaUrl = bookingUrl;
     }
+
+    console.log("[CTA_RESOLVED]", {
+      clientId: client.clientId,
+      ctaType,
+      ctaUrl,
+      bookingUrl,
+      contactUrl,
+      escalateUrl,
+      siteKey,
+      pageUrl: meta?.pageUrl || null,
+    });
 
     // Hard fail: never return booking CTAs without a URL
     const needsUrl = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING", "LEAVE_CONTACT", "ESCALATE"].includes(ctaType);

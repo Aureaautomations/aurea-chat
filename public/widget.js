@@ -429,6 +429,11 @@ async function getSiteContextV2() {
   panel.style.pointerEvents = "auto";
   AUREA_HOST.appendChild(panel);
 
+  // Prevent clicks inside the widget from closing it
+  panel.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+
   const messagesEl = panel.querySelector("#aurea-messages");
   const inputEl = panel.querySelector("#aurea-input");
   const sendEl = panel.querySelector("#aurea-send");
@@ -780,37 +785,64 @@ async function getSiteContextV2() {
     }
   }
 
+  function isPanelOpen() {
+    return panel.style.display !== "none";
+  }
+  
+  function openPanel() {
+    if (isPanelOpen()) return;
+  
+    panel.style.display = "block";
+    requestAnimationFrame(() => {
+      panel.style.opacity = "1";
+      panel.style.transform = "translateY(0)";
+    });
+  
+    const history = loadHistory();
+    if (history.length) {
+      renderHistoryIntoUI();
+    } else {
+      add("assistant", GREETING);
+      pushToHistory("assistant", GREETING);
+      historyRendered = true;
+    }
+  
+    setTimeout(() => {
+      inputEl.focus();
+      // if you implemented textarea autosizeInput(), keep this:
+      if (typeof autosizeInput === "function") autosizeInput();
+    }, 0);
+  }
+  
+  function closePanel() {
+    if (!isPanelOpen()) return;
+  
+    panel.style.opacity = "0";
+    panel.style.transform = "translateY(8px)";
+    setTimeout(() => {
+      panel.style.display = "none";
+    }, 170);
+  }
+  
   if (btn) {
-    btn.onclick = () => {
-      const isClosed = panel.style.display === "none";
-  
-      if (isClosed) {
-        panel.style.display = "block";
-        requestAnimationFrame(() => {
-          panel.style.opacity = "1";
-          panel.style.transform = "translateY(0)";
-        });
-  
-        const history = loadHistory();
-        if (history.length) {
-          renderHistoryIntoUI();
-        } else {
-          add("assistant", GREETING);
-          pushToHistory("assistant", GREETING);
-          historyRendered = true;
-        }
-  
-        setTimeout(() => inputEl.focus(), 0);
-      } else {
-        panel.style.opacity = "0";
-        panel.style.transform = "translateY(8px)";
-        setTimeout(() => {
-          panel.style.display = "none";
-        }, 170);
-      }
+    btn.onclick = (e) => {
+      e.stopPropagation(); // prevent document click handler from immediately closing it
+      if (isPanelOpen()) closePanel();
+      else openPanel();
     };
   }
 
+  // Close on outside click
+  document.addEventListener("click", (e) => {
+    if (!isPanelOpen()) return;
+  
+    // If click is inside panel or on the button, ignore
+    if (panel.contains(e.target)) return;
+    if (btn && btn.contains(e.target)) return;
+  
+    closePanel();
+  });
+  
   sendEl.onclick = send;
   // Note: we no longer auto-add greeting on load.
   // It now happens on first open, and only once.

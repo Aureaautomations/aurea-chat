@@ -417,7 +417,7 @@ async function getSiteContextV2() {
 
     <div id="aurea-messages" style="padding:12px 14px; flex:1; overflow:auto; font-size:14px;"></div>
 
-    <div style="padding:10px; border-top:1px solid #eee; display:flex; gap:8px;">
+    <div id="aurea-footer" style="padding:10px; border-top:1px solid #eee; display:flex; gap:8px;">
       <textarea id="aurea-input" placeholder="Type a message..." rows="1"
         style="flex:1; padding:10px; border:1px solid #ddd; border-radius:10px; resize:none; overflow:hidden; line-height:1.35; font-family:inherit; font-size:14px;">
       </textarea>
@@ -451,6 +451,9 @@ async function getSiteContextV2() {
     // once we hit max height, allow internal scrolling
     inputEl.style.overflowY = inputEl.scrollHeight > INPUT_MAX_HEIGHT ? "auto" : "hidden";
   }
+
+  // Keep the latest messages visible as the input grows
+  messagesEl.scrollTop = messagesEl.scrollHeight;
   
   // run on every input change
   inputEl.addEventListener("input", autosizeInput);

@@ -430,7 +430,14 @@ async function getSiteContextV2() {
   const messagesEl = panel.querySelector("#aurea-messages");
   const inputEl = panel.querySelector("#aurea-input");
   const sendEl = panel.querySelector("#aurea-send");
-  
+
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      send();
+    }
+  });
+
   const newChatBtn = panel.querySelector("#aurea-newchat");
   newChatBtn.onclick = (e) => {
     e.stopPropagation();          // prevent accidental panel close
@@ -442,38 +449,6 @@ async function getSiteContextV2() {
   inputEl.style.color = "#111";
   inputEl.style.backgroundColor = "#fff";
   inputEl.style.webkitTextFillColor = "#111";
-
-  // Some site builders hijack keyboard events.
-  // This captures typing early and manually updates the input.
-  if (MODE === "floating") {
-    window.addEventListener(
-      "keydown",
-      (e) => {
-        if (document.activeElement !== inputEl) return;
-  
-        // allow shortcuts
-        if (e.metaKey || e.ctrlKey || e.altKey) return;
-  
-        if (e.key === "Enter") {
-          e.preventDefault();
-          send();
-          return;
-        }
-  
-        if (e.key === "Backspace") {
-          e.preventDefault();
-          inputEl.value = inputEl.value.slice(0, -1);
-          return;
-        }
-  
-        if (e.key.length === 1) {
-          e.preventDefault();
-          inputEl.value += e.key;
-        }
-      },
-      true // capture phase
-    );
-  }
   
   function escapeHtml(str) {
   return String(str)

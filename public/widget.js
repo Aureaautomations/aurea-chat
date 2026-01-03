@@ -418,7 +418,9 @@ async function getSiteContextV2() {
     <div id="aurea-messages" style="padding:12px 14px; flex:1; overflow:auto; font-size:14px;"></div>
 
     <div style="padding:10px; border-top:1px solid #eee; display:flex; gap:8px;">
-      <input id="aurea-input" placeholder="Type a message..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:10px;" />
+      <textarea id="aurea-input" placeholder="Type a message..." rows="1"
+        style="flex:1; padding:10px; border:1px solid #ddd; border-radius:10px; resize:none; overflow:hidden; line-height:1.35; font-family:inherit; font-size:14px;">
+      </textarea>
       <button id="aurea-send" style="padding:10px 12px; border-radius:10px; border:1px solid #111; background:#111; color:#fff;">Send</button>
     </div>
   </div>
@@ -431,8 +433,28 @@ async function getSiteContextV2() {
   const inputEl = panel.querySelector("#aurea-input");
   const sendEl = panel.querySelector("#aurea-send");
 
-  inputEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
+  // Auto-grow textarea up to a max height so user can see what they're typing
+  const INPUT_MAX_HEIGHT = 120; // px (about ~6-7 lines)
+  
+  function autosizeInput() {
+    // reset to measure natural height
+    inputEl.style.height = "auto";
+  
+    const next = Math.min(inputEl.scrollHeight, INPUT_MAX_HEIGHT);
+    inputEl.style.height = next + "px";
+  
+    // once we hit max height, allow internal scrolling
+    inputEl.style.overflowY = inputEl.scrollHeight > INPUT_MAX_HEIGHT ? "auto" : "hidden";
+  }
+  
+  // run on every input change
+  inputEl.addEventListener("input", autosizeInput);
+  
+  // ensure correct height on open / focus
+  setTimeout(autosizeInput, 0);
+
+   inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send();
     }
@@ -673,6 +695,7 @@ async function getSiteContextV2() {
     if (!text) return;
 
     inputEl.value = "";
+    autosizeInput();
 
     // Show in UI + persist
     add("user", text);

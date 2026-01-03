@@ -9,26 +9,7 @@
   const CONFIG = window.AUREA_CONFIG || {};
   const CLIENT_ID = (CONFIG.clientId || "").trim();
 
-  const MODE = (CONFIG.mode || "floating").toLowerCase();
-  const MOUNT_SELECTOR = CONFIG.mount || null;
-
-  if (!["floating", "embedded"].includes(MODE)) {
-    console.error("[Aurea Widget] Invalid mode. Use 'floating' or 'embedded'.");
-    return;
-  }
-  
-  let EMBED_MOUNT = null;
-  if (MODE === "embedded") {
-    if (!MOUNT_SELECTOR) {
-      console.error("[Aurea Widget] Embedded mode requires CONFIG.mount");
-      return;
-    }
-    EMBED_MOUNT = document.querySelector(MOUNT_SELECTOR);
-    if (!EMBED_MOUNT) {
-      console.error(`[Aurea Widget] Mount not found: ${MOUNT_SELECTOR}`);
-      return;
-    }
-  }
+  const MODE = "floating"; // locked
   
   if (!CLIENT_ID) {
     console.error("[Aurea Widget] Missing window.AUREA_CONFIG.clientId — widget will not start.");
@@ -381,18 +362,10 @@ async function getSiteContextV2() {
   AUREA_HOST.style.pointerEvents = "none";
   AUREA_HOST.style.background = "transparent";
   
-  if (MODE === "floating") {
-    AUREA_HOST.style.position = "fixed";
-    AUREA_HOST.style.inset = "0";
-    AUREA_HOST.style.zIndex = "2147483647";
-    document.documentElement.appendChild(AUREA_HOST);
-  } else {
-    // embedded
-    AUREA_HOST.style.position = "relative";
-    AUREA_HOST.style.width = "100%";
-    AUREA_HOST.style.zIndex = "auto";
-    EMBED_MOUNT.appendChild(AUREA_HOST);
-  }
+  AUREA_HOST.style.position = "fixed";
+  AUREA_HOST.style.inset = "0";
+  AUREA_HOST.style.zIndex = "2147483647";
+  document.documentElement.appendChild(AUREA_HOST);
 
   let btn = null;
   
@@ -416,19 +389,11 @@ async function getSiteContextV2() {
   
   const panel = document.createElement("div");
 
-  if (MODE === "floating") {
   panel.style.position = "fixed";
   panel.style.right = "20px";
   panel.style.bottom = "70px";
   panel.style.width = "min(340px, calc(100vw - 40px))";
   panel.style.height = "min(420px, calc(100vh - 120px))";
-} else {
-  panel.style.position = "relative";
-  panel.style.right = "auto";
-  panel.style.bottom = "auto";
-  panel.style.width = "100%";
-  panel.style.height = "420px";
-}
   panel.style.zIndex = "999999";
   panel.style.border = "1px solid #e5e5e5";
   panel.style.borderRadius = "14px";
@@ -847,23 +812,6 @@ async function getSiteContextV2() {
       }
     };
   }
-
-  if (MODE === "embedded") {
-  // show panel immediately in embedded mode
-  panel.style.display = "block";
-  panel.style.opacity = "1";
-  panel.style.transform = "translateY(0)";
-
-  // Render history (or greeting) immediately
-  const history = loadHistory();
-  if (history.length) {
-    renderHistoryIntoUI();
-  } else {
-    add("assistant", GREETING);
-    pushToHistory("assistant", GREETING);
-    historyRendered = true;
-  }
-}
 
   sendEl.onclick = send;
   // Note: we no longer auto-add greeting on load.

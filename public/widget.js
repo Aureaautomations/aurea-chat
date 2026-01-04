@@ -716,12 +716,21 @@ async function getSiteContextV2() {
     if (role === "assistant") {
       styleBookingLinks(bubble);
     }
-    bubble.style.padding = "10px 12px";
-    bubble.style.borderRadius = "12px";
-    bubble.style.maxWidth = "85%";
-    bubble.style.background = isUser ? "#111" : "#f6f6f6";
-    bubble.style.color = isUser ? "#fff" : "#111";
-    bubble.style.border = "1px solid #eee";
+    bubble.style.padding = "10px 14px";
+    bubble.style.borderRadius = "14px";
+    bubble.style.maxWidth = "82%";
+    bubble.style.lineHeight = "1.45";
+    bubble.style.wordBreak = "break-word";
+    
+    if (isUser) {
+      bubble.style.background = "#111";
+      bubble.style.color = "#fff";
+      bubble.style.border = "1px solid #111";
+    } else {
+      bubble.style.background = "#f7f7f8";
+      bubble.style.color = "#111";
+      bubble.style.border = "1px solid #e6e6e6";
+    }
 
     wrap.appendChild(bubble);
     messagesEl.appendChild(wrap);

@@ -424,16 +424,13 @@ async function getSiteContextV2() {
   </div>
 `;
   
-  panel.style.pointerEvents = "auto";
   AUREA_HOST.appendChild(panel);
 
-  // Prevent clicks inside the widget from closing it
-  panel.addEventListener("click", (e) => {
-    e.stopPropagation();
-  });
+  // ✅ Query elements (must exist before we use them)
+  const messagesEl = panel.querySelector("#aurea-messages");
+  const inputEl = panel.querySelector("#aurea-input");
+  const sendEl = panel.querySelector("#aurea-send");
 
-  AUREA_HOST.appendChild(panel);
-  
   let __aurea_pointer_started_inside = false;
   
   // Prevent clicks inside the widget from closing it
@@ -460,9 +457,6 @@ async function getSiteContextV2() {
     // once we hit max height, allow internal scrolling
     inputEl.style.overflowY = inputEl.scrollHeight > INPUT_MAX_HEIGHT ? "auto" : "hidden";
   }
-
-  // Keep the latest messages visible as the input grows
-  messagesEl.scrollTop = messagesEl.scrollHeight;
   
   // run on every input change
   inputEl.addEventListener("input", autosizeInput);
@@ -473,8 +467,10 @@ async function getSiteContextV2() {
   
     const text = (e.clipboardData || window.clipboardData)
       .getData("text")
-      .replace(/\r?\n+/g, " "); // collapse newlines into spaces
-  
+      .replace(/\r?\n+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
     const start = inputEl.selectionStart;
     const end = inputEl.selectionEnd;
   

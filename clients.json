@@ -5,7 +5,7 @@
       "https://aureaautomations.com",
       "https://www.aureaautomations.com"
     ],
-    "bookingUrlOverride": "",
+    "bookingUrlOverride": "https://www.google.com/search?q=good+tire+calgary&rlz=1C5OZZY_enCA1177CA1177&oq=go&gs_lcrp=EgZjaHJvbWUqDggCEEUYJxg7GIAEGIoFMgYIABBFGDkyEwgBEC4YgwEYxwEYsQMY0QMYgAQyDggCEEUYJxg7GIAEGIoFMg4IAxBFGCcYOxiABBiKBTIGCAQQRRg8MgYIBRBFGDwyBggGEEUYPDIGCAcQRRg80gEIMjI2NWowajeoAgCwAgA&sourceid=chrome&ie=UTF-8",
     "contactUrlOverride": "",
     "escalateUrlOverride": "",
     "jobDisables": {}

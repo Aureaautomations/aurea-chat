@@ -394,6 +394,26 @@ function hashMessage(text) {
     .slice(0, 16); // short, non-reversible fingerprint
 }
 
+function firstNonEmpty(...vals) {
+  for (const v of vals) {
+    const s = (typeof v === "string" ? v : "").trim();
+    if (s) return s;
+  }
+  return null;
+}
+
+function resolveCtaUrlStrict(ctaType, { bookingUrl, contactUrl, escalateUrl }) {
+  // STRICT mapping. No cross-fallbacks. Unknown => null.
+  if (ctaType === "LEAVE_CONTACT") return contactUrl || null;
+  if (ctaType === "ESCALATE") return escalateUrl || null;
+
+  if (ctaType === "BOOK_NOW" || ctaType === "CHOOSE_TIME" || ctaType === "CONFIRM_BOOKING") {
+    return bookingUrl || null;
+  }
+
+  return null;
+}
+
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
@@ -440,7 +460,6 @@ app.post("/chat", async (req, res) => {
       lastCtaClicked: req.body?.signals?.lastCtaClicked || null,
       bookingPageOpened: !!req.body?.signals?.bookingPageOpened,
     });
-
 
     // ✅ pull site context from widget payload
     const siteContext = req.body?.siteContext;
@@ -506,44 +525,42 @@ app.post("/chat", async (req, res) => {
           JSON.stringify(businessSummary),
       },
     ];
+
     // Deterministic CTA type (model never chooses)
     const pricingIntent = !!route?.facts?.pricingIntent;
     const ctaType = pricingIntent ? "LEAVE_CONTACT" : (route?.cta?.type || "BOOK_NOW");
     
-    // IMPORTANT: CTA URL must match CTA type.
-    // - CHOOSE_TIME / BOOK_NOW / CONFIRM_BOOKING should go to the bookingUrl (real booking page)
-    // - LEAVE_CONTACT should go to a lead/contact page (if you have one)
-    
-    // ENV overrides should NEVER apply across clients.
-    // Only allow env overrides for the "aurea" client as a last-resort fallback.
+    // ENV overrides are allowed ONLY for aurea (debug/dev), never for other clients
     const BOOKING_URL_OVERRIDE = (process.env.AUREA_BOOKING_URL_OVERRIDE || "").trim();
     const CONTACT_URL_OVERRIDE = (process.env.AUREA_CONTACT_URL_OVERRIDE || "").trim();
     const ESCALATE_URL_OVERRIDE = (process.env.AUREA_ESCALATE_URL_OVERRIDE || "").trim();
-    
     const allowEnvFallback = client?.clientId === "aurea";
     
     // Per-client override wins, then site summary, then (aurea-only) env fallback.
-    const bookingUrl =
-      (client?.bookingUrlOverride || businessSummary?.bookingUrl || (allowEnvFallback ? BOOKING_URL_OVERRIDE : "") || "").trim() || null;
+    // NOTE: NO cross-fallbacks between booking/contact/escalate.
+    const bookingUrl = firstNonEmpty(
+      client?.bookingUrlOverride,
+      businessSummary?.bookingUrl,
+      allowEnvFallback ? BOOKING_URL_OVERRIDE : ""
+    );
     
-    const contactUrl =
-      (client?.contactUrlOverride || businessSummary?.contactUrl || (allowEnvFallback ? CONTACT_URL_OVERRIDE : "") || "").trim() || null;
+    const contactUrl = firstNonEmpty(
+      client?.contactUrlOverride,
+      businessSummary?.contactUrl,
+      allowEnvFallback ? CONTACT_URL_OVERRIDE : ""
+    );
     
-    const escalateUrl =
-      (client?.escalateUrlOverride || businessSummary?.contactUrl || contactUrl || (allowEnvFallback ? ESCALATE_URL_OVERRIDE : "") || "").trim() || null;
-
-    let ctaUrl = null;
+    // Do NOT ever pull escalation from contactUrl unless you explicitly set it as escalation.
+    // If you don’t have businessSummary.escalateUrl yet, this will be null unless overridden.
+    const escalateUrl = firstNonEmpty(
+      client?.escalateUrlOverride,
+      businessSummary?.escalateUrl,
+      allowEnvFallback ? ESCALATE_URL_OVERRIDE : ""
+    );
     
-    if (ctaType === "LEAVE_CONTACT") {
-      ctaUrl = contactUrl;
-    } else if (ctaType === "ESCALATE") {
-      ctaUrl = escalateUrl;
-    } else if (["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType)) {
-      ctaUrl = bookingUrl;
-    } else {
-      ctaUrl = bookingUrl;
-    }
-
+    // Strict resolver: booking CTAs -> bookingUrl only; contact -> contactUrl only; escalate -> escalateUrl only; unknown -> null
+    let ctaUrl = resolveCtaUrlStrict(ctaType, { bookingUrl, contactUrl, escalateUrl });
+    
     console.log("[CTA_RESOLVED]", {
       clientId: client.clientId,
       ctaType,
@@ -555,7 +572,7 @@ app.post("/chat", async (req, res) => {
       pageUrl: meta?.pageUrl || null,
     });
 
-    // Hard fail: never return booking CTAs without a URL
+    // Strict hide: if required URL is missing, return NO CTA (ctaUrl = null)
     const needsUrl = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING", "LEAVE_CONTACT", "ESCALATE"].includes(ctaType);
     
     if (needsUrl && (!ctaUrl || typeof ctaUrl !== "string" || !ctaUrl.trim())) {

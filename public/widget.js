@@ -434,9 +434,17 @@ async function getSiteContextV2() {
     e.stopPropagation();
   });
 
+  // Track where the user's interaction started (prevents drag-select closing the widget)
+  document.addEventListener("pointerdown", (e) => {
+    __aurea_pointer_started_inside =
+      panel.contains(e.target) || (btn && btn.contains(e.target));
+  });
+
   const messagesEl = panel.querySelector("#aurea-messages");
   const inputEl = panel.querySelector("#aurea-input");
   const sendEl = panel.querySelector("#aurea-send");
+
+  let __aurea_pointer_started_inside = false;
 
   // Auto-grow textarea up to a max height so user can see what they're typing
   const INPUT_MAX_HEIGHT = 120; // px (about ~6-7 lines)
@@ -457,7 +465,30 @@ async function getSiteContextV2() {
   
   // run on every input change
   inputEl.addEventListener("input", autosizeInput);
+
+  // Normalize pasted text (prevent unwanted line breaks)
+  inputEl.addEventListener("paste", (e) => {
+    e.preventDefault();
   
+    const text = (e.clipboardData || window.clipboardData)
+      .getData("text")
+      .replace(/\r?\n+/g, " "); // collapse newlines into spaces
+  
+    const start = inputEl.selectionStart;
+    const end = inputEl.selectionEnd;
+  
+    inputEl.value =
+      inputEl.value.slice(0, start) +
+      text +
+      inputEl.value.slice(end);
+  
+    // Move cursor to end of pasted text
+    const cursor = start + text.length;
+    inputEl.selectionStart = inputEl.selectionEnd = cursor;
+  
+    autosizeInput();
+  });
+
   // ensure correct height on open / focus
   setTimeout(autosizeInput, 0);
 
@@ -835,11 +866,13 @@ async function getSiteContextV2() {
     };
   }
 
-  // Close on outside click
   document.addEventListener("click", (e) => {
     if (!isPanelOpen()) return;
   
-    // If click is inside panel or on the button, ignore
+    // If the interaction started inside the widget, do NOT close (covers drag-select + mouse-up outside)
+    if (__aurea_pointer_started_inside) return;
+  
+    // Normal outside click closes
     if (panel.contains(e.target)) return;
     if (btn && btn.contains(e.target)) return;
   

@@ -394,26 +394,6 @@ function hashMessage(text) {
     .slice(0, 16); // short, non-reversible fingerprint
 }
 
-function firstNonEmpty(...vals) {
-  for (const v of vals) {
-    const s = (typeof v === "string" ? v : "").trim();
-    if (s) return s;
-  }
-  return null;
-}
-
-function resolveCtaUrlStrict(ctaType, { bookingUrl, contactUrl, escalateUrl }) {
-  // STRICT mapping. No cross-fallbacks. Unknown => null.
-  if (ctaType === "LEAVE_CONTACT") return contactUrl || null;
-  if (ctaType === "ESCALATE") return escalateUrl || null;
-
-  if (ctaType === "BOOK_NOW" || ctaType === "CHOOSE_TIME" || ctaType === "CONFIRM_BOOKING") {
-    return bookingUrl || null;
-  }
-
-  return null;
-}
-
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
@@ -467,7 +447,6 @@ app.post("/chat", async (req, res) => {
     
     // ✅ compute site key + context hash
     const siteKey = getSiteKey(siteContext?.origin || meta?.pageUrl);
-    const contextHash = hashSiteContext(siteContext);
     
     // ✅ get or create cached business summary
     let businessSummary = getCachedSummary(siteKey);

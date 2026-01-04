@@ -376,15 +376,43 @@ async function getSiteContextV2() {
     btn.style.right = "20px";
     btn.style.bottom = "20px";
     btn.style.zIndex = "999999";
-    btn.style.padding = "12px 14px";
+    btn.style.padding = "12px 16px";
     btn.style.borderRadius = "999px";
-    btn.style.border = "1px solid #ddd";
+    btn.style.border = "1px solid rgba(0,0,0,0.12)";
     btn.style.background = "#111";
     btn.style.color = "#fff";
     btn.style.cursor = "pointer";
     btn.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+    btn.style.fontSize = "14px";
+    btn.style.fontWeight = "600";
+    btn.style.letterSpacing = "0.2px";
+    btn.style.lineHeight = "1";
+    btn.style.boxShadow = "0 10px 24px rgba(0,0,0,0.18)";
+    btn.style.transition = "transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease";
+    btn.style.userSelect = "none";
+    btn.style.webkitTapHighlightColor = "transparent";
     btn.style.pointerEvents = "auto";
     AUREA_HOST.appendChild(btn);
+
+    btn.addEventListener("mouseenter", () => {
+      btn.style.opacity = "0.92";
+      btn.style.transform = "translateY(-1px)";
+      btn.style.boxShadow = "0 12px 28px rgba(0,0,0,0.22)";
+    });
+    
+    btn.addEventListener("mouseleave", () => {
+      btn.style.opacity = "1";
+      btn.style.transform = "translateY(0)";
+      btn.style.boxShadow = "0 10px 24px rgba(0,0,0,0.18)";
+    });
+    
+    btn.addEventListener("mousedown", () => {
+      btn.style.transform = "translateY(0) scale(0.98)";
+    });
+    
+    btn.addEventListener("mouseup", () => {
+      btn.style.transform = "translateY(-1px)";
+    });
   }
   
   const panel = document.createElement("div");

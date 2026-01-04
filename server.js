@@ -526,6 +526,26 @@ app.post("/chat", async (req, res) => {
       },
     ];
 
+    function firstNonEmpty(...vals) {
+      for (const v of vals) {
+        const s = (typeof v === "string" ? v : "").trim();
+        if (s) return s;
+      }
+      return null;
+    }
+    
+    function resolveCtaUrlStrict(ctaType, { bookingUrl, contactUrl, escalateUrl }) {
+      if (ctaType === "LEAVE_CONTACT") return contactUrl || null;
+      if (ctaType === "ESCALATE") return escalateUrl || null;
+    
+      if (ctaType === "BOOK_NOW" || ctaType === "CHOOSE_TIME" || ctaType === "CONFIRM_BOOKING") {
+        return bookingUrl || null;
+      }
+    
+      // Unknown CTA => no CTA shown
+      return null;
+    }
+    
     // Deterministic CTA type (model never chooses)
     const pricingIntent = !!route?.facts?.pricingIntent;
     const ctaType = pricingIntent ? "LEAVE_CONTACT" : (route?.cta?.type || "BOOK_NOW");
@@ -537,7 +557,7 @@ app.post("/chat", async (req, res) => {
     const allowEnvFallback = client?.clientId === "aurea";
     
     // Per-client override wins, then site summary, then (aurea-only) env fallback.
-    // NOTE: NO cross-fallbacks between booking/contact/escalate.
+    // NO cross-fallbacks.
     const bookingUrl = firstNonEmpty(
       client?.bookingUrlOverride,
       businessSummary?.bookingUrl,
@@ -550,15 +570,12 @@ app.post("/chat", async (req, res) => {
       allowEnvFallback ? CONTACT_URL_OVERRIDE : ""
     );
     
-    // Do NOT ever pull escalation from contactUrl unless you explicitly set it as escalation.
-    // If you don’t have businessSummary.escalateUrl yet, this will be null unless overridden.
     const escalateUrl = firstNonEmpty(
       client?.escalateUrlOverride,
       businessSummary?.escalateUrl,
       allowEnvFallback ? ESCALATE_URL_OVERRIDE : ""
     );
     
-    // Strict resolver: booking CTAs -> bookingUrl only; contact -> contactUrl only; escalate -> escalateUrl only; unknown -> null
     let ctaUrl = resolveCtaUrlStrict(ctaType, { bookingUrl, contactUrl, escalateUrl });
     
     console.log("[CTA_RESOLVED]", {

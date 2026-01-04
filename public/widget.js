@@ -433,17 +433,36 @@ async function getSiteContextV2() {
   panel.style.transition = "opacity 160ms ease, transform 160ms ease";
   panel.style.overflow = "hidden";
   panel.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  panel.style.fontSize = "14px";
+  panel.style.lineHeight = "1.45";
+  panel.style.color = "#111";
+  panel.style.textRendering = "optimizeLegibility";
+  panel.style.webkitFontSmoothing = "antialiased";
 
   panel.innerHTML = `
   <div style="height:100%; display:flex; flex-direction:column;">
-    <div style="padding:12px 14px; border-bottom:1px solid #eee; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+    <div style="
+      padding:14px 16px;
+      border-bottom:1px solid #eee;
+      font-weight:600;
+      font-size:14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    ">
       <span>${BUSINESS_NAME}</span>
       <button id="aurea-newchat" style="font-size:12px; padding:6px 8px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer;">
         New
       </button>
     </div>
 
-    <div id="aurea-messages" style="padding:12px 14px; flex:1; overflow:auto; font-size:14px;"></div>
+    <div id="aurea-messages" style="
+      padding:14px 16px;
+      flex:1;
+      overflow:auto;
+      font-size:14px;
+      line-height:1.45;
+    "></div>
 
     <div id="aurea-footer" style="padding:10px; border-top:1px solid #eee; display:flex; gap:8px;">
     <textarea id="aurea-input" placeholder="Type a message..." rows="1" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:10px; resize:none; overflow:hidden; line-height:1.35; font-family:inherit; font-size:14px;"></textarea>

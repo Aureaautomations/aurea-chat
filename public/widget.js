@@ -451,7 +451,21 @@ async function getSiteContextV2() {
       align-items:center;
     ">
       <span>${BUSINESS_NAME}</span>
-      <button id="aurea-newchat" style="font-size:12px; padding:6px 8px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer;">
+      <button
+        id="aurea-newchat"
+        style="
+          font-size:12px;
+          padding:7px 10px;
+          border-radius:999px;
+          border:1px solid #e6e6e6;
+          background:#fff;
+          color:#111;
+          font-weight:600;
+          cursor:pointer;
+          transition:opacity 120ms ease, transform 120ms ease, background 120ms ease;
+          user-select:none;
+        "
+      >
         New
       </button>
     </div>
@@ -581,6 +595,26 @@ async function getSiteContextV2() {
     clearHistoryAndUI();          // handles storage + UI reset
     setTimeout(() => inputEl.focus(), 0);
   };
+
+  newChatBtn.addEventListener("mouseenter", () => {
+    newChatBtn.style.background = "#f6f6f6";
+  });
+  
+  newChatBtn.addEventListener("mouseleave", () => {
+    newChatBtn.style.background = "#fff";
+    newChatBtn.style.transform = "scale(1)";
+    newChatBtn.style.opacity = "1";
+  });
+  
+  newChatBtn.addEventListener("mousedown", () => {
+    newChatBtn.style.transform = "scale(0.98)";
+    newChatBtn.style.opacity = "0.9";
+  });
+  
+  newChatBtn.addEventListener("mouseup", () => {
+    newChatBtn.style.transform = "scale(1)";
+    newChatBtn.style.opacity = "1";
+  });
 
   // Force readable input text (some site builders override input styles)
   inputEl.style.color = "#111";

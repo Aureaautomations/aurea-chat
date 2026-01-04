@@ -128,6 +128,24 @@ function toAbsUrl(href, origin) {
   }
 }
 
+function isValidBookingUrl(url) {
+  const u = String(url || "").trim();
+  if (!u) return false;
+
+  const lower = u.toLowerCase();
+  if (!lower.startsWith("http://") && !lower.startsWith("https://")) return false;
+
+  // hard disallow obvious contact endpoints
+  if (lower.includes("contact")) return false;
+
+  // require booking-ish intent OR known booking providers
+  const looksBooking =
+    /(book|booking|schedule|appointment|demo|get-started)/i.test(lower) ||
+    /(calendly|janeapp|acuityscheduling|setmore|simplybook|appointy|square\.site)/i.test(lower);
+
+  return looksBooking;
+}
+
 function extractBookingUrlDeterministic(siteContext, siteKey) {
   const origin = siteContext?.origin || siteKey || null;
   if (!origin) return null;
@@ -420,30 +438,27 @@ Rules:
 
     // Deterministic booking URL extraction (NO AI). Prefer structured siteContext over trimmed text.
     const deterministicBookingUrl = extractBookingUrlDeterministic(siteContext, siteKey);
-    
-    // Always force booking.url if we found one deterministically
+
     if (deterministicBookingUrl) {
+      // deterministic wins
       result.booking = result.booking || { method: null, url: null };
       result.booking.url = deterministicBookingUrl;
       if (!result.booking.method) result.booking.method = "link";
-    
-      if (Array.isArray(result.missingFields)) {
-        result.missingFields = result.missingFields.filter(
-          (f) => f !== "booking.url" && f !== "booking.method"
-        );
-      }
-    } else if (!result?.booking?.url) {
-      // LAST resort: your older text-only fallback (keep it as a backup)
-      const fallback = extractBookingUrlFallback(trimmed, siteKey);
-      if (fallback) {
+    } else {
+      // If the model gave us a "booking url", validate it. If invalid, discard.
+      const modelUrl = result?.booking?.url || null;
+      if (modelUrl && !isValidBookingUrl(modelUrl)) {
         result.booking = result.booking || { method: null, url: null };
-        result.booking.url = fallback;
-        if (!result.booking.method) result.booking.method = "link";
+        result.booking.url = null;
+      }
     
-        if (Array.isArray(result.missingFields)) {
-          result.missingFields = result.missingFields.filter(
-            (f) => f !== "booking.url" && f !== "booking.method"
-          );
+      // If still missing, try deterministic text fallback
+      if (!result?.booking?.url) {
+        const fallback = extractBookingUrlFallback(trimmed, siteKey);
+        if (fallback) {
+          result.booking = result.booking || { method: null, url: null };
+          result.booking.url = fallback;
+          if (!result.booking.method) result.booking.method = "link";
         }
       }
     }

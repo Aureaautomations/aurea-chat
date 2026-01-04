@@ -432,17 +432,20 @@ async function getSiteContextV2() {
     e.stopPropagation();
   });
 
-  // Track where the user's interaction started (prevents drag-select closing the widget)
+  AUREA_HOST.appendChild(panel);
+  
+  let __aurea_pointer_started_inside = false;
+  
+  // Prevent clicks inside the widget from closing it
+  panel.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+  
+  // Track where the user's interaction started
   document.addEventListener("pointerdown", (e) => {
     __aurea_pointer_started_inside =
       panel.contains(e.target) || (btn && btn.contains(e.target));
   });
-
-  const messagesEl = panel.querySelector("#aurea-messages");
-  const inputEl = panel.querySelector("#aurea-input");
-  const sendEl = panel.querySelector("#aurea-send");
-
-  let __aurea_pointer_started_inside = false;
 
   // Auto-grow textarea up to a max height so user can see what they're typing
   const INPUT_MAX_HEIGHT = 120; // px (about ~6-7 lines)

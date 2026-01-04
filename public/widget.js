@@ -861,9 +861,19 @@ async function getSiteContextV2() {
   
   if (btn) {
     btn.onclick = (e) => {
-      e.stopPropagation(); // prevent document click handler from immediately closing it
-      if (isPanelOpen()) closePanel();
-      else openPanel();
+      console.log("[Aurea] chat button clicked");
+      e.stopPropagation();
+  
+      console.log("[Aurea] before toggle display =", panel.style.display);
+  
+      try {
+        if (isPanelOpen()) closePanel();
+        else openPanel();
+      } catch (err) {
+        console.error("[Aurea] toggle error:", err);
+      }
+  
+      console.log("[Aurea] after toggle display =", panel.style.display);
     };
   }
 

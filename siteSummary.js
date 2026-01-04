@@ -1,6 +1,10 @@
 // siteSummary.js
 const crypto = require("crypto");
 
+console.log("[SITE_SUMMARY_BUILD]", {
+  build: "siteSummary-2026-01-03-02",
+});
+
 // Simple in-memory cache (resets when Render restarts)
 const SITE_CACHE = new Map();
 
@@ -446,6 +450,13 @@ Rules:
     
     // Back-compat alias (server.js currently reads businessSummary.bookingUrl)
     result.bookingUrl = result?.booking?.url || null;
+
+    console.log("[SITE_SUMMARY_URLS]", {
+      siteKey,
+      bookingUrl: result.bookingUrl || null,
+      contactUrl: result.contactUrl || null,
+      escalateUrl: result.escalateUrl || null,
+    });
 
     // Deterministic contact URL (separate from booking URL)
     const deterministicContactUrl = extractContactUrlDeterministic(siteContext, siteKey);

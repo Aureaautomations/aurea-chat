@@ -14,7 +14,7 @@ function extractBookingUrlFallback(trimmed, siteKey) {
 
   // Look for href/url values that include intent keywords.
   // This is deterministic string matching, not AI.
-  const intent = /(book|booking|demo|schedule|appointment|contact|get started|consult|call)/i;
+  const intent = /(book|booking|demo|schedule|appointment|get started|consult)/i;
 
   // Match common patterns like href="...", href:'...', "url":"..."
   const re = /(href|url)\s*[:=]\s*["']([^"']+)["']/gi;
@@ -139,7 +139,6 @@ function extractBookingUrlDeterministic(siteContext, siteKey) {
   const priority = [
     /book|booking|schedule|appointment/,
     /demo|get started|start|consult/,
-    /contact/,
   ];
 
   for (const re of priority) {
@@ -163,6 +162,33 @@ function extractBookingUrlDeterministic(siteContext, siteKey) {
   const anyMatch = combined.match(
     /\bhttps?:\/\/[^\s<"]*(book|booking|schedule|appointment|demo|contact|get-started)[^\s<"]*/i
   );
+  if (anyMatch) return anyMatch[0];
+
+  return null;
+}
+
+function extractContactUrlDeterministic(siteContext, siteKey) {
+  const origin = siteContext?.origin || siteKey || null;
+  if (!origin) return null;
+
+  const navLinks = Array.isArray(siteContext?.navLinks) ? siteContext.navLinks : [];
+  const candidates = navLinks
+    .map((l) => ({
+      text: String(l?.text || "").toLowerCase(),
+      href: String(l?.href || ""),
+    }))
+    .filter((x) => x.href);
+
+  const hit = candidates.find((c) => /contact|call|email|get in touch|support/i.test(c.text) || /contact/i.test(c.href.toLowerCase()));
+  if (hit) return toAbsUrl(hit.href, origin);
+
+  const extraPages = Array.isArray(siteContext?.extraPages) ? siteContext.extraPages : [];
+  const combined = [
+    siteContext?.textSample || "",
+    ...extraPages.map((p) => p?.textSample || ""),
+  ].join("\n");
+
+  const anyMatch = combined.match(/\bhttps?:\/\/[^\s<"]*(contact|get-in-touch|support)[^\s<"]*/i);
   if (anyMatch) return anyMatch[0];
 
   return null;
@@ -420,6 +446,13 @@ Rules:
     
     // Back-compat alias (server.js currently reads businessSummary.bookingUrl)
     result.bookingUrl = result?.booking?.url || null;
+
+    // Deterministic contact URL (separate from booking URL)
+    const deterministicContactUrl = extractContactUrlDeterministic(siteContext, siteKey);
+    result.contactUrl = deterministicContactUrl || null;
+    
+    // Escalation URL: for now, default to contactUrl unless you later add a separate escalation link
+    result.escalateUrl = result.contactUrl;
     
     // Attach debug (safe)
     result._debug = {

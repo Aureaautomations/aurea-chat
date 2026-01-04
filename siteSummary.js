@@ -158,9 +158,9 @@ function extractBookingUrlDeterministic(siteContext, siteKey) {
   );
   if (providerMatch) return providerMatch[0];
 
-  // Any absolute URL that looks like booking/contact
+  // Any absolute URL that looks like booking
   const anyMatch = combined.match(
-    /\bhttps?:\/\/[^\s<"]*(book|booking|schedule|appointment|demo|contact|get-started)[^\s<"]*/i
+    /\bhttps?:\/\/[^\s<"]*(book|booking|schedule|appointment|demo|get-started)[^\s<"]*/i
   );
   if (anyMatch) return anyMatch[0];
 

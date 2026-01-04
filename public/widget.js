@@ -873,19 +873,19 @@ async function getSiteContextV2() {
     };
   }
 
-  document.addEventListener("click", (e) => {
+  document.addEventListener("pointerdown", (e) => {
     if (!isPanelOpen()) return;
   
-    // If the interaction started inside the widget, do NOT close (covers drag-select + mouse-up outside)
-    if (__aurea_pointer_started_inside) return;
-  
-    // Normal outside click closes
-    if (panel.contains(e.target)) return;
+    // click started on the chat button -> let toggle handler deal with it
     if (btn && btn.contains(e.target)) return;
   
-    closePanel();
-  });
+    // click started inside panel -> do nothing (don't close)
+    if (panel.contains(e.target)) return;
   
+    // otherwise, outside click closes
+    closePanel();
+  }, true); // ✅ capture phase
+
   sendEl.onclick = send;
   // Note: we no longer auto-add greeting on load.
   // It now happens on first open, and only once.

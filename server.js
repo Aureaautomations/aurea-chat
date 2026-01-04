@@ -566,6 +566,16 @@ app.post("/chat", async (req, res) => {
       escalateUrl,
       siteKey,
       pageUrl: meta?.pageUrl || null,
+    
+      // DEBUG: prove where contactUrl came from
+      contactUrlSource: {
+        clientOverride: client?.contactUrlOverride || null,
+        summary: businessSummary?.contactUrl || null,
+        env:
+          allowEnvFallback
+            ? (process.env.AUREA_CONTACT_URL_OVERRIDE || "").trim() || null
+            : null,
+      },
     });
 
     // Strict hide: if required URL is missing, return NO CTA (ctaUrl = null)

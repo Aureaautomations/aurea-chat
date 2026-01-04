@@ -425,6 +425,7 @@ async function getSiteContextV2() {
 `;
   
   AUREA_HOST.appendChild(panel);
+  panel.style.pointerEvents = "auto";
 
   // ✅ Query elements (must exist before we use them)
   const messagesEl = panel.querySelector("#aurea-messages");
@@ -822,6 +823,8 @@ async function getSiteContextV2() {
   
   function openPanel() {
     if (isPanelOpen()) return;
+
+    AUREA_HOST.style.pointerEvents = "auto";
   
     panel.style.display = "block";
     requestAnimationFrame(() => {
@@ -852,6 +855,7 @@ async function getSiteContextV2() {
     panel.style.transform = "translateY(8px)";
     setTimeout(() => {
       panel.style.display = "none";
+      AUREA_HOST.style.pointerEvents = "none";
     }, 170);
   }
   

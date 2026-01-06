@@ -33,7 +33,7 @@ const RE = {
   bookingIntent: /\b(book|booking|schedule|appointment|times?|today|tomorrow|this week|next week)\b/i,
   availabilityIntent: /\b(availability|available)\b/i,
 
-  // Booking DELAY (stay in Job #2)
+  // Booking DELAY (route to Job #4 if bookingContext exists)
   bookingDelay: /\b(not yet|maybe later|later|not now|another time|i[' ]?ll book (later|another time)|i[' ]?ll do it later|tomorrow instead|after work|in a bit)\b/i,
   
   // Booking DECLINE (exit Job #2)
@@ -110,6 +110,15 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       bookingPageOpened,
 
     bookingDelay: RE.bookingDelay.test(text),
+
+    // wantsReminderLater = delay language + booking context
+    // IMPORTANT: do NOT trigger this for "cannotBookNow" (unknown schedule) or explicit decline.
+    wantsReminderLater:
+      RE.bookingDelay.test(text) &&
+      bookingContext &&
+      !RE.cannotBookNow.test(text) &&
+      !RE.bookingDecline.test(text) &&
+      !RE.noAvailability.test(text),
 
     // Decline means “do not continue booking flow”.
     // Treat "no availability" as NOT a decline — it's a capture-lead scenario.
@@ -199,6 +208,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     !facts.noAvailability &&
     !facts.bookingDecline &&
     !facts.cannotBookNow &&
+    !facts.wantsReminderLater &&
     !mergedFacts.bookingBlocked &&
     (
       ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
@@ -218,7 +228,14 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const bookingInProgress =
     mergedFacts.bookingIntent === true || historyShowsBookingIntent(history);
   
-  if (bookingInProgress && !facts.bookingDecline && !facts.noAvailability && !facts.cannotBookNow && !mergedFacts.bookingBlocked) {
+  if (
+    bookingInProgress &&
+    !facts.bookingDecline &&
+    !facts.noAvailability &&
+    !facts.cannotBookNow &&
+    !facts.wantsReminderLater &&
+    !mergedFacts.bookingBlocked
+  ) {
     return {
       job: JOBS.JOB_2,
       facts: {
@@ -235,7 +252,10 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const leadOfferMade = Boolean(s.leadOfferMade);
   
   if (
-    (facts.noAvailability || facts.bookingDecline || (facts.cannotBookNow && bookingContext)) &&
+    (facts.noAvailability ||
+      facts.bookingDecline ||
+      facts.wantsReminderLater ||
+      (facts.cannotBookNow && bookingContext)) &&
     !leadOfferMade
   ) {
     

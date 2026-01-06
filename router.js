@@ -28,7 +28,7 @@ const RE = {
   
   escalationPrivacy: /\b(delete my data|remove my data|privacy request|PIPEDA|PHIPA|HIPAA|GDPR)\b/i,
 
-  cannotBookNow: /\b(i\s*don'?t\s*know\s+my\s+(availability|schedule)|not\s+sure\s+my\s+(availability|schedule)|need\s+to\s+check\s+my\s+(availability|schedule)|have\s+to\s+check\s+my\s+(availability|schedule)|let\s+me\s+check\s+my\s+(availability|schedule)|i\s*don'?t\s+know\s+yet|not\s+sure\s+yet)\b/i,
+  cannotBookNow: /\b(i\s*(do\s*not|don'?t)\s*(know|have)\s*(my\s*)?(availability|schedule)|i\s*(do\s*not|don'?t)\s*(know|have)\s*when\s*i'?m\s*free|(not|n'?t)\s*sure(\s*yet)?(\s*when\s*i'?m\s*free)?|need\s*to\s*check(\s*my)?\s*(availability|schedule)|have\s*to\s*check(\s*my)?\s*(availability|schedule)|let\s*me\s*check(\s*my)?\s*(availability|schedule)|i\s*need\s*to\s*look\s*at\s*my\s*schedule|i\s*have\s*to\s*look\s*at\s*my\s*schedule|i\s*(do\s*not|don'?t)\s*know\s*yet|not\s*sure\s*yet)\b/i,
 
   bookingIntent: /\b(book|booking|schedule|appointment|times?|today|tomorrow|this week|next week)\b/i,
   availabilityIntent: /\b(availability|available)\b/i,

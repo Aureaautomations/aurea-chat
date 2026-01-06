@@ -36,6 +36,8 @@ const RE = {
   // Booking DELAY = explicit deferral (NOT rescheduling or time preference)
   bookingDelay: /\b(not yet|maybe later|not now|another time|some other time|i[' ]?ll (book|schedule) (later|another time)|i[' ]?ll do it later|in a bit)\b/i,
 
+  reminderIntent: /\b(remind|reminder|notify|notification|follow up|check back|touch back|reach out later)\b/i,
+  
   // Booking DECLINE (exit Job #2)
   bookingDecline: /\b(no thanks|no thank you|nah|nope|don'?t want to book|not booking|stop|leave me alone)\b/i,
 
@@ -118,6 +120,18 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       !RE.bookingDecline.test(text) &&
       !RE.noAvailability.test(text),
 
+    reminderIntent: RE.reminderIntent.test(text),
+
+    wantsReminderLater:
+      bookingContext &&
+      (
+        RE.bookingDelay.test(text) ||
+        RE.reminderIntent.test(text)
+      ) &&
+      !RE.cannotBookNow.test(text) &&
+      !RE.bookingDecline.test(text) &&
+      !RE.noAvailability.test(text),
+  
     // Decline means “do not continue booking flow”.
     // Treat "no availability" as NOT a decline — it's a capture-lead scenario.
     bookingDecline:

@@ -116,7 +116,9 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       RE.bookingDecline.test(text) &&
       !RE.browseIntent.test(text) &&
       !RE.noAvailability.test(text),
-    
+
+    cannotBookNow: RE.cannotBookNow.test(text),
+
     noAvailability: RE.noAvailability.test(text),
     afterLeadCapture: Boolean(s.leadOfferMade),
 
@@ -194,6 +196,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   if (
     !facts.noAvailability &&
     !facts.bookingDecline &&
+    !facts.cannotBookNow &&
     !mergedFacts.bookingBlocked &&
     (
       ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
@@ -213,7 +216,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   const bookingInProgress =
     mergedFacts.bookingIntent === true || historyShowsBookingIntent(history);
   
-  if (bookingInProgress && !facts.bookingDecline && !facts.noAvailability && !mergedFacts.bookingBlocked) {
+  if (bookingInProgress && !facts.bookingDecline && !facts.noAvailability && !facts.cannotBookNow && !mergedFacts.bookingBlocked) {
     return {
       job: JOBS.JOB_2,
       facts: {
@@ -229,7 +232,11 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   // Only offer lead capture if we haven't already offered it this conversation.
   const leadOfferMade = Boolean(s.leadOfferMade);
   
-  if ((facts.noAvailability || facts.bookingDecline) && !leadOfferMade) {
+  if (
+    (facts.noAvailability || facts.bookingDecline || (facts.cannotBookNow && bookingContext)) &&
+    !leadOfferMade
+  ) {
+    
     return {
       job: JOBS.JOB_4,
       facts: mergedFacts,

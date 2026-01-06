@@ -130,7 +130,17 @@ function buildJob4Reply(routeFacts = {}) {
   const noAvail = !!routeFacts.noAvailability;
   const declined = !!routeFacts.bookingDecline;
   const cannotBookNow = !!routeFacts.cannotBookNow;
+  const wantsReminderLater = !!routeFacts.wantsReminderLater;
 
+  // A0) Wants to book later (delay, not schedule confusion)
+  // Router only sets wantsReminderLater when bookingContext exists.
+  if (wantsReminderLater) {
+    return (
+      "No problem — you don’t have to book right now.\n\n" +
+      "If you leave your email or phone, I’ll send a quick reminder with the booking link so you can grab a time when you’re ready."
+    );
+  }
+  
   // A) Schedule not set yet (cannot book right now)
   // Router only sends Job #4 for cannotBookNow when bookingContext exists, so this copy can assume intent.
   if (cannotBookNow) {

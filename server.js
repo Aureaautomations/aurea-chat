@@ -414,6 +414,20 @@ function hashMessage(text) {
     .slice(0, 16); // short, non-reversible fingerprint
 }
 
+function detectReminderIntent(text = "") {
+  const t = String(text || "").toLowerCase();
+
+  // Strong phrases
+  const strong =
+    /\b(remind|reminder|notify|notification|follow\s*up|check\s*back|touch\s*base|touch\s*back|circle\s*back|reach\s*out|ping\s*me)\b/i;
+
+  // Weaker phrases that often imply “later”
+  const soft =
+    /\b(in\s+a\s+few\s+days|in\s+a\s+couple\s+days|next\s+week|later\s+this\s+week|later\s+on|another\s+time)\b/i;
+
+  return strong.test(t) || soft.test(t);
+}
+
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
@@ -445,6 +459,22 @@ app.post("/chat", async (req, res) => {
       signals: req.body?.signals || {},
       channel: req.body?.channel || "widget",
     });
+
+    // ✅ Reminder / follow-up intent guard (deterministic)
+    // If the user asks for a reminder / follow-up, do NOT enter Job #2.
+    // Treat as wantsReminderLater and route to Job #4 with LEAVE_CONTACT.
+    const reminderIntent = detectReminderIntent(userMessage || "");
+    
+    // If booking already started, reminder language means "not now / later" → exit Job #2.
+    if (reminderIntent) {
+      route.facts = route.facts || {};
+      route.facts.wantsReminderLater = true;
+      route.facts.reminderIntent = true; // for logging/visibility (optional but useful)
+    
+      // Force to Job #4 (widget-allowed) and deterministic lead CTA
+      route.job = JOBS.JOB_4;
+      route.cta = { type: "LEAVE_CONTACT" };
+    }
 
     // Optional per-client job disables (fail-safe to JOB_1)
     if (client?.jobDisables && client.jobDisables[route.job] === true) {

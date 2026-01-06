@@ -33,9 +33,9 @@ const RE = {
   bookingIntent: /\b(book|booking|schedule|appointment|times?|today|tomorrow|this week|next week)\b/i,
   availabilityIntent: /\b(availability|available)\b/i,
 
-  // Booking DELAY (route to Job #4 if bookingContext exists)
-  bookingDelay: /\b(not yet|maybe later|not now|another time|some other time|i[' ]?ll book (later|another time)|i[' ]?ll do it later|i[' ]?ll schedule (later|another time)|in a bit)\b/i,
-  
+  // Booking DELAY = explicit deferral (NOT rescheduling or time preference)
+  bookingDelay: /\b(not yet|maybe later|not now|another time|some other time|i[' ]?ll (book|schedule) (later|another time)|i[' ]?ll do it later|in a bit)\b/i,
+
   // Booking DECLINE (exit Job #2)
   bookingDecline: /\b(no thanks|no thank you|nah|nope|don'?t want to book|not booking|stop|leave me alone)\b/i,
 
@@ -108,9 +108,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       RE.bookingIntent.test(lastUser) ||
       ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
       bookingPageOpened,
-
-    bookingDelay: RE.bookingDelay.test(text),
-
+    
     // wantsReminderLater = delay language + booking context
     // IMPORTANT: do NOT trigger this for "cannotBookNow" (unknown schedule) or explicit decline.
     wantsReminderLater:

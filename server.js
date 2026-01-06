@@ -129,8 +129,18 @@ const HISTORY_LIMIT = 40;
 function buildJob4Reply(routeFacts = {}) {
   const noAvail = !!routeFacts.noAvailability;
   const declined = !!routeFacts.bookingDecline;
+  const cannotBookNow = !!routeFacts.cannotBookNow;
 
-  // A) No availability
+  // A) Schedule not set yet (cannot book right now)
+  // Router only sends Job #4 for cannotBookNow when bookingContext exists, so this copy can assume intent.
+  if (cannotBookNow) {
+    return (
+      "Totally fair — if you don’t know your schedule yet, you don’t have to book right now.\n\n" +
+      "If you leave your email or phone, I’ll send a quick reminder and the booking link so you can choose a time when you’re ready."
+    );
+  }
+
+  // B) No availability
   if (noAvail) {
     return (
       "Got it — there aren’t any times that fit right now.\n\n" +
@@ -138,7 +148,7 @@ function buildJob4Reply(routeFacts = {}) {
     );
   }
 
-  // B) Explicit booking decline
+  // C) Explicit booking decline
   if (declined) {
     return (
       "No problem.\n\n" +
@@ -146,7 +156,7 @@ function buildJob4Reply(routeFacts = {}) {
     );
   }
 
-  // C) Fallback (should be rare)
+  // D) Fallback (should be rare)
   return (
     "If you leave your email or phone, I can follow up with the details you were looking for."
   );

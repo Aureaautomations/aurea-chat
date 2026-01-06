@@ -34,7 +34,7 @@ const RE = {
   availabilityIntent: /\b(availability|available)\b/i,
 
   // Booking DELAY (route to Job #4 if bookingContext exists)
-  bookingDelay: /\b(not yet|maybe later|later|not now|another time|i[' ]?ll book (later|another time)|i[' ]?ll do it later|tomorrow instead|after work|in a bit)\b/i,
+  bookingDelay: /\b(not yet|maybe later|not now|another time|some other time|i[' ]?ll book (later|another time)|i[' ]?ll do it later|i[' ]?ll schedule (later|another time)|in a bit)\b/i,
   
   // Booking DECLINE (exit Job #2)
   bookingDecline: /\b(no thanks|no thank you|nah|nope|don'?t want to book|not booking|stop|leave me alone)\b/i,

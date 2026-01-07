@@ -56,6 +56,7 @@ const RE = {
   dayHint: /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|this week|next week)\b/i,
   timeWindow: /\b(morning|afternoon|evening|tonight)\b/i,
   serviceInterest: /\b(sms|text|email|re-?engagement|welcome|lead capture|reminders?|reviews?)\b/i,
+  timeSelectionIntent: /\b(choose a time|pick a time|select a time|what (day|time)|when (are you|is)|available times?|openings?|slots?)\b/i,
 
   browseIntent: /\b(just browsing|just looking|browsing|looking around|curious|info|information|tell me about|what do you offer|services|how does it work|website( link)?|site( link)?|url|link)\b/i,
 };
@@ -148,6 +149,12 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     desiredTimeWindow: ((text.match(RE.timeWindow) || lastUser.match(RE.timeWindow)) || [])[0] || null,
     serviceInterest: (text.match(RE.serviceInterest) || [])[0] || null,
 
+    timeSelectionIntent:
+      RE.dayHint.test(text) ||
+      RE.timeWindow.test(text) ||
+      RE.timeSelectionIntent.test(text),
+
+
     firstTimeLikely: /\b(first time|new (client|customer)|never been)\b/i.test(text),
 
     // leave false for now; you are NOT implementing Job #3 yet
@@ -214,10 +221,17 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     !facts.wantsReminderLater &&
     !mergedFacts.bookingBlocked &&
     (
+      // If they clicked a booking CTA or opened booking page, Job #2 can run
       ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
-      RE.bookingIntent.test(text) ||
-      (RE.readyConfirm.test(text) && facts.bookingIntent)
+      bookingPageOpened ||
+    
+      // Otherwise, only enter Job #2 when they are clearly selecting a time
+      (facts.bookingIntent && facts.timeSelectionIntent) ||
+    
+      // Ready-confirm is only meaningful if they are in time-selection mode
+      (RE.readyConfirm.test(text) && facts.timeSelectionIntent)
     )
+
   ) {
     return {
       job: JOBS.JOB_2,
@@ -238,6 +252,11 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     !facts.cannotBookNow &&
     !facts.wantsReminderLater &&
     !mergedFacts.bookingBlocked
+    && (
+      ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(lastCtaClicked) ||
+      bookingPageOpened ||
+      facts.timeSelectionIntent
+    )
   ) {
     return {
       job: JOBS.JOB_2,

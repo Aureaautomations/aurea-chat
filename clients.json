@@ -20,9 +20,9 @@
       "https://amplifyhealthcollective.com",
       "https://www.amplifyhealthcollective.com"
     ],
-    "bookingUrlOverride": "",
-    "contactUrlOverride": "",
-    "escalateUrlOverride": "",
+    "bookingUrlOverride": "https://amplifyhealthcollective.janeapp.com/",
+    "contactUrlOverride": "https://www.amplifyhealthcollective.com/contact",
+    "escalateUrlOverride": "https://www.amplifyhealthcollective.com/contact",
     "jobDisables": {}
   }
 }

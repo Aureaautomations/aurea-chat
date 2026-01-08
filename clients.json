@@ -13,6 +13,7 @@
 
   "amplify": {
     "clientId": "amplify",
+    "bookingPlatformLabel": "Jane",
     "allowedOrigins": [
       "https://aureaautomations.com",
       "https://www.aureaautomations.com",

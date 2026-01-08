@@ -233,7 +233,7 @@ function isAllowedJob2Tail(text) {
   const t = String(text).trim();
 
   // Option B: exact instruction (verbatim)
-  if (t === "Please click the button to choose a time.") return true;
+  if (t === "I can’t book it directly here. I’ll send you to Jane to choose the exact time.") return true;
 
   // Option A: exactly ONE question (single sentence ending with "?")
   if (!t.endsWith("?")) return false;
@@ -258,7 +258,7 @@ function fallbackJob2Tail(facts = {}) {
   if (!tw) return "What time window works best (morning, afternoon, or evening)?";
 
   // If nothing missing, deterministic instruction
-  return "Please click the button to choose a time.";
+  return "I can’t book it directly here. I’ll send you to Jane to choose the exact time.";
 }
 
 function sanitizeHistory(history) {
@@ -707,7 +707,7 @@ app.post("/chat", async (req, res) => {
             "- You MUST use the provided ROUTE_FACTS.\n" +
             "- You may ask at most ONE question.\n" +
             "- You may ONLY ask about ALLOWED_QUESTION.\n" +
-            "- If ALLOWED_QUESTION is null: ask no questions; tell them to click the CTA to choose a time.\n" +
+            "- If ALLOWED_QUESTION is null: ask no questions; use the exact disclosure sentence.\n" +
             "- Do NOT mention any specific industry unless it is explicitly present in BUSINESS_SUMMARY.\n" +
             "- Do NOT include links.\n\n" +
             "ROUTE_FACTS:\n" +
@@ -719,7 +719,7 @@ app.post("/chat", async (req, res) => {
             "OUTPUT RULES (STRICT):\n" +
             "You must output ONLY ONE of the following:\n" +
             "A) Exactly one question (a single sentence ending with \"?\") ONLY if required to proceed.\n" +
-            "B) Exactly this sentence (verbatim, no changes): \"Please click the button to choose a time.\"\n" +
+            "B) Exactly this sentence (verbatim, no changes): \"I can’t book it directly here. I’ll send you to Jane to choose the exact time.\"\n" +
             "\n" +
             "Do not confirm details.\n" +
             "Do not say \"Got it\".\n" +

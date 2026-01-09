@@ -12,7 +12,7 @@ const JOBS = {
   JOB_7: "JOB_7_ESCALATION_GATE",
 };
 
-const ROUTER_BUILD = "router-build-2025-12-30-01";
+const ROUTER_BUILD = "router-build-2026-01-08-02";
 
 // --- keyword/regex detectors (keep these tight + auditable) ---
 const RE = {

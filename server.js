@@ -865,7 +865,11 @@ app.post("/chat", async (req, res) => {
           contextChars: businessSummary?._debug?.contextChars ?? null,
         },
         pricing: businessSummary?.pricing ?? null,
-        bookingUrl: businessSummary?.bookingUrl ?? null,
+      
+        bookingUrl: bookingUrl || null,
+        contactUrl: contactUrl || null,
+        escalateUrl: escalateUrl || null,
+      
         services: businessSummary?.services ?? null,
       });
     }
@@ -893,12 +897,15 @@ app.post("/chat", async (req, res) => {
         contextChars: businessSummary?._debug?.contextChars ?? null,
       },
     
-      // TEMP: prove what the model is seeing
       pricing: businessSummary?.pricing ?? null,
-      bookingUrl: businessSummary?.bookingUrl ?? null,
+    
+      bookingUrl: bookingUrl || null,
+      contactUrl: contactUrl || null,
+      escalateUrl: escalateUrl || null,
+    
       services: businessSummary?.services ?? null,
     });
-
+    
   } catch (error) {
     console.error("OpenAI error:", error);
     return res.status(500).json({

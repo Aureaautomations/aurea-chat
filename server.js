@@ -228,13 +228,13 @@ function buildBookingAck(facts = {}, lastUserText = "", bookingIntentThisTurn = 
   return `Got it.`;
 }
 
-function isAllowedJob2Tail(text) {
+function isAllowedJob2Tail(text, allowedSentence) {
   if (!text) return false;
   const t = String(text).trim();
 
   // Option B: exact instruction (verbatim)
-  if (t === "I can’t book it directly here. I’ll send you to Jane to choose the exact time.") return true;
-
+  if (t === String(allowedSentence || "").trim()) return true;
+  
   // Option A: exactly ONE question (single sentence ending with "?")
   if (!t.endsWith("?")) return false;
   if (t.includes("\n")) return false;
@@ -248,7 +248,7 @@ function isAllowedJob2Tail(text) {
   return true;
 }
 
-function fallbackJob2Tail(facts = {}) {
+function fallbackJob2Tail(facts = {}, allowedSentence = "") {
   const day = facts.desiredDay || null;
   const tw = facts.desiredTimeWindow || null;
 
@@ -258,7 +258,7 @@ function fallbackJob2Tail(facts = {}) {
   if (!tw) return "What time window works best (morning, afternoon, or evening)?";
 
   // If nothing missing, deterministic instruction
-  return "I can’t book it directly here. I’ll send you to Jane to choose the exact time.";
+  return String(allowedSentence || "").trim() || "Please click the button to choose a time.";
 }
 
 function sanitizeHistory(history) {
@@ -428,6 +428,18 @@ function detectReminderIntent(text = "") {
   return strong.test(t) || soft.test(t);
 }
 
+function getBookingHandoffSentence(client) {
+  const label = (client && typeof client.bookingPlatformLabel === "string" && client.bookingPlatformLabel.trim())
+    ? client.bookingPlatformLabel.trim()
+    : null;
+
+  if (label) {
+    return `I can’t book it directly here. I’ll send you to ${label} to choose the exact time.`;
+  }
+
+  return "I can’t book it directly here. I’ll send you to the booking page to choose the exact time.";
+}
+
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
@@ -443,8 +455,11 @@ app.post("/chat", async (req, res) => {
       return res.status(403).json({ error: "Invalid client" });
     }
 
+    const BOOKING_HANDOFF_SENTENCE = getBookingHandoffSentence(client);
+
     console.log("[CLIENT_RESOLVED]", {
       clientId: client.clientId,
+      bookingPlatformLabel: client.bookingPlatformLabel || null,
       bookingUrlOverride: client.bookingUrlOverride || null,
       contactUrlOverride: client.contactUrlOverride || null,
       escalateUrlOverride: client.escalateUrlOverride || null,
@@ -707,7 +722,7 @@ app.post("/chat", async (req, res) => {
             "- You MUST use the provided ROUTE_FACTS.\n" +
             "- You may ask at most ONE question.\n" +
             "- You may ONLY ask about ALLOWED_QUESTION.\n" +
-            "- If ALLOWED_QUESTION is null: ask no questions; use the exact disclosure sentence.\n" +
+            "- If ALLOWED_QUESTION is null: ask no questions; output the exact disclosure sentence.\n" +
             "- Do NOT mention any specific industry unless it is explicitly present in BUSINESS_SUMMARY.\n" +
             "- Do NOT include links.\n\n" +
             "ROUTE_FACTS:\n" +
@@ -719,7 +734,7 @@ app.post("/chat", async (req, res) => {
             "OUTPUT RULES (STRICT):\n" +
             "You must output ONLY ONE of the following:\n" +
             "A) Exactly one question (a single sentence ending with \"?\") ONLY if required to proceed.\n" +
-            "B) Exactly this sentence (verbatim, no changes): \"I can’t book it directly here. I’ll send you to Jane to choose the exact time.\"\n" +
+            "B) Exactly this sentence (verbatim, no changes): " + JSON.stringify(BOOKING_HANDOFF_SENTENCE) + "\n" +
             "\n" +
             "Do not confirm details.\n" +
             "Do not say \"Got it\".\n" +
@@ -760,9 +775,9 @@ app.post("/chat", async (req, res) => {
       const modelTail = (parsed && typeof parsed.text === "string") ? parsed.text : "";
 
       // ✅ Hard gate: if the model violates format, replace with deterministic fallback
-      const tail = isAllowedJob2Tail(modelTail)
+      const tail = isAllowedJob2Tail(modelTail, BOOKING_HANDOFF_SENTENCE)
         ? modelTail.trim()
-        : fallbackJob2Tail({ desiredDay, desiredTimeWindow });
+        : fallbackJob2Tail({ desiredDay, desiredTimeWindow }, BOOKING_HANDOFF_SENTENCE);
 
       aiReply = `${ack}\n\n${tail}`;
     }

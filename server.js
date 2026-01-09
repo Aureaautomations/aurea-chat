@@ -278,6 +278,11 @@ function sanitizeHistory(history) {
     }));
 }
 
+function isHoursQuestion(text) {
+  const t = String(text || "").toLowerCase();
+  return /\b(hours?|when are you open|open (today|tomorrow)?|closing time|opening time)\b/.test(t);
+}
+
 function containsHoursClaim(text) {
   const t = String(text || "").toLowerCase();
 

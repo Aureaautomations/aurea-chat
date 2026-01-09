@@ -278,11 +278,6 @@ function sanitizeHistory(history) {
     }));
 }
 
-function isHoursQuestion(text) {
-  const t = String(text || "").toLowerCase();
-  return /\b(hours?|when are you open|open (today|tomorrow)?|closing time|opening time)\b/.test(t);
-}
-
 function containsHoursClaim(text) {
   const t = String(text || "").toLowerCase();
 
@@ -692,64 +687,59 @@ app.post("/chat", async (req, res) => {
     if (route.job === JOBS.JOB_1) {
       const jobMessages = [
         { role: "system", content: JOB1_SYSTEM_PROMPT },
-      
-    // NEW: deterministic “browse mode” immediately after Job #4
-    ...(route?.facts?.afterLeadCapture || route?.facts?.browseIntent
-      ? [{
-          role: "system",
-          content:
-            "BROWSE MODE.\n" +
-            "RULES FOR THIS TURN:\n" +
-            "- Do NOT greet.\n" +
-            "- Do NOT ask about booking.\n" +
-            "- Do NOT tell them to book.\n" +
-            "- Answer the question using BUSINESS_SUMMARY.\n" +
-            "- End with ONE short question to understand what info they want (services, pricing, how it works).\n" +
-            "- Keep it to 1–3 sentences.\n"
-        }]
-      : []),
-
+    
+        // deterministic “browse mode” immediately after Job #4
+        ...(route?.facts?.afterLeadCapture || route?.facts?.browseIntent
+          ? [{
+              role: "system",
+              content:
+                "BROWSE MODE.\n" +
+                "RULES FOR THIS TURN:\n" +
+                "- Do NOT greet.\n" +
+                "- Do NOT ask about booking.\n" +
+                "- Do NOT tell them to book.\n" +
+                "- Answer the question using BUSINESS_SUMMARY.\n" +
+                "- End with ONE short question to understand what info they want (services, pricing, how it works).\n" +
+                "- Keep it to 1–3 sentences.\n"
+            }]
+          : []),
+    
         ...systemMessages,
       ];
-
+    
+      // 1) Deterministic pricing path
       if (pricingIntent) {
-        aiReply = stripUrls(buildDeterministicPricingReply(businessSummary));  
-      } else {
-      const job1Response = await openai.responses.create({
-        model: "gpt-4.1-mini",
-        input: [...jobMessages, ...inputMessages],
-        // IMPORTANT: no text.format here
-      });
-
-      // Deterministic hours reply (prevents hallucinated or oddly phrased hours)
-      const latestUser = latestTrimmed; // you already have this in scope
-      if (isHoursQuestion(latestUser)) {
+        aiReply = stripUrls(buildDeterministicPricingReply(businessSummary));
+      }
+    
+      // 2) Deterministic hours path (prevents weird phrasing/hallucination)
+      else if (isHoursQuestion(latestTrimmed)) {
         if (businessSummary?.hours) {
           aiReply = `Hours: ${String(businessSummary.hours).trim()}\n\nDo you want to book, or ask about services?`;
         } else {
-          aiReply = "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
-        }
-      } else {
-        // existing OpenAI call stays here
-        const job1Response = await openai.responses.create({ ... });
-        aiReply = stripUrls(job1Response.output_text || "No reply.");
-      
-        // keep your existing guard too (it still helps)
-        if (!businessSummary?.hours && containsHoursClaim(aiReply)) {
-          aiReply = "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
+          aiReply =
+            "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
         }
       }
-
-      aiReply = stripUrls(job1Response.output_text || "No reply.");
-
-      // Guard: never state hours unless BUSINESS_SUMMARY.hours is present
-      if (!businessSummary?.hours && containsHoursClaim(aiReply)) {
-        aiReply =
-          "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
+    
+      // 3) Normal Job 1 LLM response
+      else {
+        const job1Response = await openai.responses.create({
+          model: "gpt-4.1-mini",
+          input: [...jobMessages, ...inputMessages],
+        });
+    
+        aiReply = stripUrls(job1Response.output_text || "No reply.");
+    
+        // Guard: never state hours unless BUSINESS_SUMMARY.hours is present
+        if (!businessSummary?.hours && containsHoursClaim(aiReply)) {
+          aiReply =
+            "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
+        }
       }
     }
-  }
-      // Job #2
+      
+    // Job #2
     else if (route.job === JOBS.JOB_2) {
       const f = route?.facts || {};
     

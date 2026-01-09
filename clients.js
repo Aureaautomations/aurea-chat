@@ -56,6 +56,9 @@ function getClientConfig(clientIdRaw) {
   return {
     clientId,
     allowedOrigins,
+    bookingPlatformLabel: typeof c.bookingPlatformLabel === "string"
+      ? c.bookingPlatformLabel.trim()
+      : null,
     bookingUrlOverride: String(c.bookingUrlOverride || "").trim(),
     contactUrlOverride: String(c.contactUrlOverride || "").trim(),
     escalateUrlOverride: String(c.escalateUrlOverride || "").trim(),

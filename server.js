@@ -278,6 +278,21 @@ function sanitizeHistory(history) {
     }));
 }
 
+function containsHoursClaim(text) {
+  const t = String(text || "").toLowerCase();
+
+  // “hours/open/close” language
+  if (/\b(hours?|open|opens|opening|close|closes|closing)\b/.test(t)) return true;
+
+  // explicit time ranges like "9 AM", "5pm", "10:30 am"
+  if (/\b\d{1,2}(:\d{2})?\s*(am|pm)\b/.test(t)) return true;
+
+  // days + hours combos like "mon-fri"
+  if (/\b(mon|tue|wed|thu|fri|sat|sun)(day)?\b/.test(t) && /\b(open|close|am|pm)\b/.test(t)) return true;
+
+  return false;
+}
+
 function stripUrls(text) {
   if (!text) return text;
   return String(text)
@@ -440,6 +455,11 @@ function getBookingHandoffSentence(client) {
   return "I can’t book it directly here. I’ll send you to the booking page to choose the exact time.";
 }
 
+function containsHoursClaim(text) {
+  const t = String(text || "").toLowerCase();
+  return /\b(hours|open|close|closing|opening)\b/.test(t) || /\b\d{1,2}\s*(am|pm)\b/.test(t);
+}
+
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {
   try {
@@ -520,8 +540,8 @@ app.post("/chat", async (req, res) => {
     if (!businessSummary) {
       businessSummary = await summarizeSiteContext({ siteKey, siteContext });
     
-      // Only cache successful summaries (avoid poisoning cache with failures)
-      if (businessSummary && businessSummary._debug?.usedOpenAI && !businessSummary._debug?.error) {
+    // Only cache successful summaries (avoid poisoning cache with failures)
+    if (businessSummary && businessSummary._debug?.usedOpenAI && !businessSummary._debug?.error) {
         setCachedSummary(siteKey, businessSummary);
       } else {
         console.log("[siteSummary] not caching due to error", {
@@ -697,6 +717,12 @@ app.post("/chat", async (req, res) => {
       });
     
       aiReply = stripUrls(job1Response.output_text || "No reply.");
+
+      // Guard: never state hours unless BUSINESS_SUMMARY.hours is present
+      if (!businessSummary?.hours && containsHoursClaim(aiReply)) {
+        aiReply =
+          "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
+      }
     }
   }
       // Job #2

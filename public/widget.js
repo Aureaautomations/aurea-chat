@@ -356,12 +356,19 @@ async function getSiteContextV2() {
   // -----------------------------
   // UI
   // -----------------------------
-  
+
+  // Use the site's font (or allow an explicit override per client)
+  const PAGE_FONT =
+    (typeof CONFIG.fontFamily === "string" && CONFIG.fontFamily.trim())
+      ? CONFIG.fontFamily.trim()
+      : (getComputedStyle(document.body).fontFamily || getComputedStyle(document.documentElement).fontFamily);
+
   const AUREA_HOST = document.createElement("div");
   AUREA_HOST.id = "__aurea_host__";
   AUREA_HOST.style.pointerEvents = "none";
   AUREA_HOST.style.background = "transparent";
-  
+  AUREA_HOST.style.fontFamily = PAGE_FONT;
+
   AUREA_HOST.style.position = "fixed";
   AUREA_HOST.style.inset = "0";
   AUREA_HOST.style.zIndex = "2147483647";
@@ -382,7 +389,6 @@ async function getSiteContextV2() {
     btn.style.background = "#111";
     btn.style.color = "#fff";
     btn.style.cursor = "pointer";
-    btn.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
     btn.style.fontSize = "14px";
     btn.style.fontWeight = "600";
     btn.style.letterSpacing = "0.2px";
@@ -432,7 +438,6 @@ async function getSiteContextV2() {
   panel.style.transform = "translateY(8px)";
   panel.style.transition = "opacity 160ms ease, transform 160ms ease";
   panel.style.overflow = "hidden";
-  panel.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
   panel.style.fontSize = "14px";
   panel.style.lineHeight = "1.45";
   panel.style.color = "#111";

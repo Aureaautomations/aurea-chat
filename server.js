@@ -278,6 +278,11 @@ function sanitizeHistory(history) {
     }));
 }
 
+function isHoursQuestion(text) {
+  const t = String(text || "").toLowerCase();
+  return /\b(hours?|when are you open|open (today|tomorrow)?|closing time|opening time)\b/.test(t);
+}
+
 function containsHoursClaim(text) {
   const t = String(text || "").toLowerCase();
 
@@ -715,7 +720,26 @@ app.post("/chat", async (req, res) => {
         input: [...jobMessages, ...inputMessages],
         // IMPORTANT: no text.format here
       });
-    
+
+      // Deterministic hours reply (prevents hallucinated or oddly phrased hours)
+      const latestUser = latestTrimmed; // you already have this in scope
+      if (isHoursQuestion(latestUser)) {
+        if (businessSummary?.hours) {
+          aiReply = `Hours: ${String(businessSummary.hours).trim()}\n\nDo you want to book, or ask about services?`;
+        } else {
+          aiReply = "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
+        }
+      } else {
+        // existing OpenAI call stays here
+        const job1Response = await openai.responses.create({ ... });
+        aiReply = stripUrls(job1Response.output_text || "No reply.");
+      
+        // keep your existing guard too (it still helps)
+        if (!businessSummary?.hours && containsHoursClaim(aiReply)) {
+          aiReply = "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
+        }
+      }
+
       aiReply = stripUrls(job1Response.output_text || "No reply.");
 
       // Guard: never state hours unless BUSINESS_SUMMARY.hours is present

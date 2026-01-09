@@ -439,7 +439,7 @@ function detectReminderIntent(text = "") {
 
   // Strong phrases
   const strong =
-    /\b(remind|reminder|notify|notification|follow\s*up|check\s*back|touch\s*base|touch\s*back|circle\s*back|reach\s*out|ping\s*me)\b/i;
+    /\b(remind|reminder|notify|notification|follow\s*up|check\s*back|touch\s*base|touch\s*back|circle\s*back|reach\s*out|ping\s*me|text\s*me|message\s*me|sms\s*me)\b/i;
 
   // Weaker phrases that often imply “later”
   const soft =

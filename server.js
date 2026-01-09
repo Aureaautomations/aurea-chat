@@ -137,7 +137,7 @@ function buildJob4Reply(routeFacts = {}) {
   if (wantsReminderLater) {
     return (
       "No problem — you don’t have to book right now.\n\n" +
-      "If you leave your email or phone, I’ll send a quick reminder with the booking link so you can grab a time when you’re ready."
+      "If you leave your email or phone, our team will follow up with a reminder and the booking link when you’re ready."
     );
   }
   
@@ -146,7 +146,7 @@ function buildJob4Reply(routeFacts = {}) {
   if (cannotBookNow) {
     return (
       "Totally fair — if you don’t know your schedule yet, you don’t have to book right now.\n\n" +
-      "If you leave your email or phone, I’ll send a quick reminder and the booking link so you can choose a time when you’re ready."
+      "If you leave your email or phone, our team can follow up with the booking link when it makes sense."
     );
   }
 
@@ -176,7 +176,7 @@ function buildJob7Reply(routeFacts = {}) {
   const r = String(routeFacts.escalationReason || "").toUpperCase();
 
   if (r === "SAFETY") {
-    return "I can’t handle safety issues in chat. Please use the button below to contact the clinic right away.";
+    return "I can’t handle safety issues in chat. Please use the button below to contact the team right away.";
   }
 
   if (r === "LEGAL_DISPUTE") {
@@ -184,7 +184,7 @@ function buildJob7Reply(routeFacts = {}) {
   }
 
   if (r === "MEDICAL") {
-    return "I can’t provide medical advice. Please contact a clinician for medical questions. To reach the team about booking or clinic policies, use the button below.";
+    return "I can’t provide medical advice. Please contact a clinician for medical questions. To reach the team about booking or policies, use the button below.";
   }
 
   if (r === "STAFF_COMPLAINT") {
@@ -723,7 +723,7 @@ app.post("/chat", async (req, res) => {
           aiReply = `Hours: ${String(businessSummary.hours).trim()}\n\nDo you want to book, or ask about services?`;
         } else {
           aiReply =
-            "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
+            "I don’t see hours listed on this page. If you tap Book now, you’ll see the latest availability there.";
         }
       }
     
@@ -739,92 +739,16 @@ app.post("/chat", async (req, res) => {
         // Guard: never state hours unless BUSINESS_SUMMARY.hours is present
         if (!businessSummary?.hours && containsHoursClaim(aiReply)) {
           aiReply =
-            "I don’t see the clinic hours listed on this page. If you tap Book Now, the booking page will show the available times.";
+            "I don’t see hours listed on this page. If you tap Book now, you’ll see the latest availability there.";
         }
       }
     }
       
     // Job #2
     else if (route.job === JOBS.JOB_2) {
-      const f = route?.facts || {};
-    
-      const desiredDay = f.desiredDay || null;
-      const desiredTimeWindow = f.desiredTimeWindow || null;
-    
-      // Determine the ONE thing we're missing
-      let allowedQuestion = null;
-      if (!desiredDay) allowedQuestion = "desiredDay";
-      else if (!desiredTimeWindow) allowedQuestion = "desiredTimeWindow";
-      else allowedQuestion = null;
-    
-      const job2Messages = [
-        {
-          role: "system",
-          content:
-            "You are JOB_2_EXECUTE_BOOKING.\n" +
-            "Goal: help the user complete a booking step.\n\n" +
-            "Hard rules:\n" +
-            "- You MUST use the provided ROUTE_FACTS.\n" +
-            "- You may ask at most ONE question.\n" +
-            "- You may ONLY ask about ALLOWED_QUESTION.\n" +
-            "- If ALLOWED_QUESTION is null: ask no questions; output the exact disclosure sentence.\n" +
-            "- Do NOT mention any specific industry unless it is explicitly present in BUSINESS_SUMMARY.\n" +
-            "- Do NOT include links.\n\n" +
-            "ROUTE_FACTS:\n" +
-            JSON.stringify({ desiredDay, desiredTimeWindow }) +
-            "\n\n" +
-            "ALLOWED_QUESTION:\n" +
-            JSON.stringify(allowedQuestion) +
-            "\n\n" +
-            "OUTPUT RULES (STRICT):\n" +
-            "You must output ONLY ONE of the following:\n" +
-            "A) Exactly one question (a single sentence ending with \"?\") ONLY if required to proceed.\n" +
-            "B) Exactly this sentence (verbatim, no changes): " + JSON.stringify(BOOKING_HANDOFF_SENTENCE) + "\n" +
-            "\n" +
-            "Do not confirm details.\n" +
-            "Do not say \"Got it\".\n" +
-            "Do not add extra sentences.\n" +
-            "Do not add bullet points.\n" +
-            "Do not include links.\n" +
-            "Do not mention CTAs, routing, jobs, or internal systems.\n",
-        },
-        ...systemMessages,
-      ];
-    
-      const response = await openai.responses.create({
-        model: "gpt-4.1-mini",
-        input: [...job2Messages, ...inputMessages],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "job2_execute_booking",
-            strict: true,
-            schema: JOB2_RESPONSE_SCHEMA,
-          },
-        },
-      });
-
-      const raw = response.output_text || "";
-      let parsed = null;
-      try { parsed = JSON.parse(raw); } catch {}
-
-      // ✅ Deterministic first sentence from backend facts
-      const lastUserText = (inputMessages || [])
-        .filter(m => m && m.role === "user" && typeof m.content === "string")
-        .map(m => m.content)
-        .pop() || "";
-      
-      const ack = buildBookingAck(route?.facts || {}, lastUserText, !!route?.facts?.bookingIntent);
-
-      // ✅ Model is ONLY allowed to produce the second sentence ("tail")
-      const modelTail = (parsed && typeof parsed.text === "string") ? parsed.text : "";
-
-      // ✅ Hard gate: if the model violates format, replace with deterministic fallback
-      const tail = isAllowedJob2Tail(modelTail, BOOKING_HANDOFF_SENTENCE)
-        ? modelTail.trim()
-        : fallbackJob2Tail({ desiredDay, desiredTimeWindow }, BOOKING_HANDOFF_SENTENCE);
-
-      aiReply = `${ack}\n\n${tail}`;
+      // Current stage: we do NOT schedule inside chat.
+      // Always hand off to booking platform via CTA.
+      aiReply = BOOKING_HANDOFF_SENTENCE;
     }
 
     // Job #7 (deterministic — no OpenAI)

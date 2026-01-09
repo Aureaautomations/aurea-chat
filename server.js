@@ -283,6 +283,11 @@ function isHoursQuestion(text) {
   return /\b(hours?|when are you open|open (today|tomorrow)?|closing time|opening time)\b/.test(t);
 }
 
+function isRescheduleQuestion(text) {
+  const t = String(text || "").toLowerCase();
+  return /\b(resched(ule)?|change my appointment|move my appointment|cancel|cancellation)\b/.test(t);
+}
+
 function containsHoursClaim(text) {
   const t = String(text || "").toLowerCase();
 
@@ -726,7 +731,13 @@ app.post("/chat", async (req, res) => {
             "I don’t see hours listed on this page. If you tap Book now, you’ll see the latest availability there.";
         }
       }
-    
+
+      // 2.5) Deterministic reschedule/cancel path (no pretending we can modify bookings)
+      else if (isRescheduleQuestion(latestTrimmed)) {
+        aiReply =
+          "I can’t reschedule appointments directly in chat. Please use the Book now button to manage your booking. If you’d rather have the team help, use the contact button.";
+      }
+        
       // 3) Normal Job 1 LLM response
       else {
         const job1Response = await openai.responses.create({

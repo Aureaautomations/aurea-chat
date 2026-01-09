@@ -916,6 +916,7 @@ async function getSiteContextV2() {
           businessName: BUSINESS_NAME,
           pageUrl: window.location.href,
           pageTitle: document.title,
+          siteKeyOverride: (CONFIG.siteKeyOverride || "").trim() || null,
         },
       }),
     });

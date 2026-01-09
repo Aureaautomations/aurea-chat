@@ -536,7 +536,7 @@ app.post("/chat", async (req, res) => {
     const meta = req.body?.meta;
     
     // ✅ compute site key + context hash
-    const siteKey = getSiteKey(siteContext?.origin || meta?.pageUrl);
+    const siteKey = getSiteKey(meta?.siteKeyOverride || siteContext?.origin || meta?.pageUrl);
     
     // ✅ get or create cached business summary
     let businessSummary = getCachedSummary(siteKey);

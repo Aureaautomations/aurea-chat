@@ -713,7 +713,29 @@ async function getSiteContextV2() {
         default: return "Book now";
       }
     }
-    
+
+    function resolveStrictCtaUrl(d, ctaType) {
+    // Strict mapping only. No generic fallback.
+    // If required URL is missing -> return null (CTA hidden).
+    if (!d || typeof d !== "object") return null;
+  
+    const norm = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  
+    if (ctaType === "BOOK_NOW" || ctaType === "CHOOSE_TIME" || ctaType === "CONFIRM_BOOKING") {
+      return norm(d.bookingUrl);
+    }
+  
+    if (ctaType === "LEAVE_CONTACT") {
+      return norm(d.contactUrl);
+    }
+  
+    if (ctaType === "ESCALATE") {
+      return norm(d.escalateUrl);
+    }
+  
+    return null;
+  }
+
     function renderDeterministicCTA(ctaType, bookingUrl) {
       // remove any existing CTA (we only want one visible at a time)
       const existing = document.getElementById("aurea-cta-wrap");
@@ -921,15 +943,15 @@ async function getSiteContextV2() {
       pushToHistory("assistant", reply);
       
       const ctaType = d.ctaType || "BOOK_NOW";
-      const ctaUrl = (typeof d.ctaUrl === "string" && d.ctaUrl.trim()) ? d.ctaUrl.trim() : null;
-
+      const strictCtaUrl = resolveStrictCtaUrl(d, ctaType);
+      
       // Job #4 one-shot gating: only mark leadOfferMade when Job #4 actually ran
       const job = d?.route?.job || "";
       if (job === "JOB_4_CAPTURE_LEAD") {
         setSignal({ leadOfferMade: true });
       }
       
-      renderDeterministicCTA(ctaType, ctaUrl);
+      renderDeterministicCTA(ctaType, strictCtaUrl);
       
     } catch {
       removeTyping();

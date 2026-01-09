@@ -104,6 +104,17 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     Boolean(priorFacts.bookingIntent) ||
     historyShowsBookingIntent(history);
 
+  const textL = text.toLowerCase();
+  const lastUserL = safeString(lastUser).toLowerCase();
+  
+  function firstMatch(re, s) {
+    const m = s.match(re);
+    return (m && m[0]) ? String(m[0]).toLowerCase() : null;
+  }
+  
+  const extractedDay = firstMatch(RE.dayHint, textL) || firstMatch(RE.dayHint, lastUserL);
+  const extractedWindow = firstMatch(RE.timeWindow, textL) || firstMatch(RE.timeWindow, lastUserL);
+
   // derived facts (deterministic booleans)
   const facts = {
     bookingIntent:
@@ -145,15 +156,14 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
       RE.serviceHint.test(text) ||
       RE.serviceInterest.test(text),
 
-    desiredDay: ((text.match(RE.dayHint) || lastUser.match(RE.dayHint)) || [])[0] || null,
-    desiredTimeWindow: ((text.match(RE.timeWindow) || lastUser.match(RE.timeWindow)) || [])[0] || null,
+    desiredDay: extractedDay,
+    desiredTimeWindow: extractedWindow,
     serviceInterest: (text.match(RE.serviceInterest) || [])[0] || null,
 
     timeSelectionIntent:
-      RE.dayHint.test(text) ||
-      RE.timeWindow.test(text) ||
+      Boolean(extractedDay) ||
+      Boolean(extractedWindow) ||
       RE.timeSelectionIntent.test(text),
-
 
     firstTimeLikely: /\b(first time|new (client|customer)|never been)\b/i.test(text),
 

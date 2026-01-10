@@ -453,6 +453,11 @@ function detectReminderIntent(text = "") {
   return strong.test(t) || soft.test(t);
 }
 
+function detectContactRequest(text = "") {
+  const t = String(text || "").toLowerCase();
+  return /\b(call me|phone me|give me a call|can you call|talk to someone|speak to someone|contact me)\b/.test(t);
+}
+
 function getBookingHandoffSentence(client) {
   const label = (client && typeof client.bookingPlatformLabel === "string" && client.bookingPlatformLabel.trim())
     ? client.bookingPlatformLabel.trim()
@@ -509,6 +514,7 @@ app.post("/chat", async (req, res) => {
     // If the user asks for a reminder / follow-up, do NOT enter Job #2.
     // Treat as wantsReminderLater and route to Job #4 with LEAVE_CONTACT.
     const reminderIntent = detectReminderIntent(userMessage || "");
+    const contactRequest = detectContactRequest(userMessage || "");
     
     // If booking already started, reminder language means "not now / later" → exit Job #2.
     if (reminderIntent) {
@@ -517,6 +523,15 @@ app.post("/chat", async (req, res) => {
       route.facts.reminderIntent = true; // for logging/visibility (optional but useful)
     
       // Force to Job #4 (widget-allowed) and deterministic lead CTA
+      route.job = JOBS.JOB_4;
+      route.cta = { type: "LEAVE_CONTACT" };
+    }
+
+    // Explicit request for human contact (call me, speak to someone, etc.)
+    if (contactRequest) {
+      route.facts = route.facts || {};
+      route.facts.wantsHumanContact = true;
+    
       route.job = JOBS.JOB_4;
       route.cta = { type: "LEAVE_CONTACT" };
     }

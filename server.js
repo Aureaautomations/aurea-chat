@@ -733,11 +733,24 @@ app.post("/chat", async (req, res) => {
       }
 
       // 2.5) Deterministic reschedule/cancel path (no pretending we can modify bookings)
-      else if (isRescheduleQuestion(latestTrimmed)) {
+     else if (isRescheduleQuestion(latestTrimmed)) {
+      const hasBooking = !!bookingUrl;
+      const hasContact = !!contactUrl;
+    
+      if (hasBooking && hasContact) {
         aiReply =
-          "I can’t reschedule appointments directly in chat. Please use the Book now button to manage your booking. If you’d rather have the team help, use the contact button.";
+          "I can’t reschedule directly in chat. Use the Book now button to manage your booking, or use the contact button and the team can help.";
+      } else if (hasBooking) {
+        aiReply =
+          "I can’t reschedule directly in chat. Use the Book now button to manage your booking.";
+      } else if (hasContact) {
+        aiReply =
+          "I can’t reschedule directly in chat. Use the contact button and the team can help.";
+      } else {
+        aiReply =
+          "I can’t reschedule directly in chat, and I don’t see a booking or contact link on this page.";
       }
-        
+    }
       // 3) Normal Job 1 LLM response
       else {
         const job1Response = await openai.responses.create({

@@ -137,7 +137,7 @@ function buildJob4Reply(routeFacts = {}) {
   if (wantsReminderLater) {
     return (
       "No problem — you don’t have to book right now.\n\n" +
-      "If you leave your email or phone, our team will follow up with a reminder and the booking link when you’re ready."
+      "If you leave your email or phone, the team can reach out with the booking link when it makes sense."
     );
   }
   

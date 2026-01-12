@@ -336,7 +336,7 @@ async function getSiteContextV2() {
     localStorage.removeItem(LS_KEYS.history);
     localStorage.removeItem(LS_KEYS.signals);
     newConversationId();
-  
+
     __aurea_sitewide_cache = null;
     __aurea_sitewide_cache_at = 0;
   
@@ -357,6 +357,26 @@ async function getSiteContextV2() {
   // UI
   // -----------------------------
 
+  function detectSiteTypography() {
+    // Prefer real readable text
+    const el =
+      document.querySelector("main p") ||
+      document.querySelector("p") ||
+      document.querySelector("main") ||
+      document.body;
+
+    const cs = getComputedStyle(el);
+    return {
+      fontFamily: (cs.fontFamily || "").trim() || "Arial, Helvetica, sans-serif",
+      fontSize: (cs.fontSize || "").trim() || "16px",
+      fontWeight: (cs.fontWeight || "").trim() || "400",
+      letterSpacing: (cs.letterSpacing || "").trim() || "normal",
+      lineHeight: (cs.lineHeight || "").trim() || "normal",
+    };
+  }
+
+  const SITE_TYPO = detectSiteTypography();
+  
   // Use the site's font (or allow an explicit override per client)
   function detectPageFontFamily() {
     // Client override wins
@@ -432,8 +452,8 @@ async function getSiteContextV2() {
     btn.style.color = "#fff";
     btn.style.cursor = "pointer";
     btn.style.fontSize = "14px";
+    btn.style.fontFamily = "inherit";
     btn.style.fontWeight = "600";
-    btn.style.letterSpacing = "0.2px";
     btn.style.lineHeight = "1";
     btn.style.boxShadow = "0 10px 24px rgba(0,0,0,0.18)";
     btn.style.transition = "transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease";
@@ -480,11 +500,12 @@ async function getSiteContextV2() {
   panel.style.transform = "translateY(8px)";
   panel.style.transition = "opacity 160ms ease, transform 160ms ease";
   panel.style.overflow = "hidden";
-  panel.style.fontSize = "14px";
-  panel.style.lineHeight = "1.45";
   panel.style.color = "#111";
   panel.style.textRendering = "optimizeLegibility";
   panel.style.webkitFontSmoothing = "antialiased";
+  panel.style.fontFamily = "inherit";
+  panel.style.fontSize = "inherit";
+  panel.style.lineHeight = "inherit";
 
   panel.innerHTML = `
   <div style="height:100%; display:flex; flex-direction:column;">

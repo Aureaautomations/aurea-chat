@@ -3,7 +3,7 @@
   window.__AUREA_WIDGET_LOADED__ = true;
 
   // bump version
-  window.__AUREA_WIDGET_VERSION__ = "0.2.1";
+  window.__AUREA_WIDGET_VERSION__ = "0.2.2";
   console.log(`[Aurea Widget] loaded v${window.__AUREA_WIDGET_VERSION__}`);
 
   const CONFIG = window.AUREA_CONFIG || {};
@@ -413,23 +413,6 @@ async function getSiteContextV2() {
   AUREA_HOST.id = "__aurea_host__";
   AUREA_HOST.style.pointerEvents = "none";
   AUREA_HOST.style.background = "transparent";
-  AUREA_HOST.style.fontFamily = PAGE_FONT;
-
-  // If the site uses webfonts, computed font-family can change after fonts finish loading.
-  // Refresh once fonts are ready.
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
-      const refreshed = detectPageFontFamily();
-      AUREA_HOST.style.fontFamily = refreshed;
-      if (btn) btn.style.fontFamily = "inherit";
-      panel.style.fontFamily = "inherit";
-    }).catch(() => {});
-  }
-
-  // Ensure key controls inherit even if Wix applies weird global button/input styles
-  if (btn) btn.style.fontFamily = "inherit";
-  panel.style.fontFamily = "inherit";
-
 
   AUREA_HOST.style.position = "fixed";
   AUREA_HOST.style.inset = "0";
@@ -484,6 +467,20 @@ async function getSiteContextV2() {
   }
   
   const panel = document.createElement("div");
+
+  // Apply font inheritance AFTER btn/panel exist (prevents ReferenceError)
+  if (btn) btn.style.fontFamily = "inherit";
+  panel.style.fontFamily = "inherit";
+
+  // Optional: refresh font-family after webfonts load (safe now)
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      const refreshed = detectPageFontFamily();
+      AUREA_HOST.style.fontFamily = refreshed;
+      if (btn) btn.style.fontFamily = "inherit";
+      panel.style.fontFamily = "inherit";
+    }).catch(() => {});
+  }
 
   panel.style.position = "fixed";
   panel.style.right = "20px";

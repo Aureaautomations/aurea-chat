@@ -358,16 +358,58 @@ async function getSiteContextV2() {
   // -----------------------------
 
   // Use the site's font (or allow an explicit override per client)
-  const PAGE_FONT =
-    (typeof CONFIG.fontFamily === "string" && CONFIG.fontFamily.trim())
-      ? CONFIG.fontFamily.trim()
-      : (getComputedStyle(document.body).fontFamily || getComputedStyle(document.documentElement).fontFamily);
+  function detectPageFontFamily() {
+    // Client override wins
+    if (typeof CONFIG.fontFamily === "string" && CONFIG.fontFamily.trim()) {
+      return CONFIG.fontFamily.trim();
+    }
+
+    // Wix often sets font on a wrapper inside <body>, not on body/html.
+    // So sample common "real text" nodes and pick the first usable font-family.
+    const candidates = [
+      document.querySelector("h1"),
+      document.querySelector("h2"),
+      document.querySelector("p"),
+      document.querySelector("a"),
+      document.querySelector("button"),
+      document.querySelector("span"),
+      document.querySelector("div"),
+      document.body,
+      document.documentElement,
+    ].filter(Boolean);
+
+    for (const el of candidates) {
+      const ff = (getComputedStyle(el).fontFamily || "").trim();
+      if (ff) return ff;
+    }
+
+    // Final fallback
+    return "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  }
+
+  const PAGE_FONT = detectPageFontFamily();
 
   const AUREA_HOST = document.createElement("div");
   AUREA_HOST.id = "__aurea_host__";
   AUREA_HOST.style.pointerEvents = "none";
   AUREA_HOST.style.background = "transparent";
   AUREA_HOST.style.fontFamily = PAGE_FONT;
+
+  // If the site uses webfonts, computed font-family can change after fonts finish loading.
+  // Refresh once fonts are ready.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      const refreshed = detectPageFontFamily();
+      AUREA_HOST.style.fontFamily = refreshed;
+      if (btn) btn.style.fontFamily = "inherit";
+      panel.style.fontFamily = "inherit";
+    }).catch(() => {});
+  }
+
+  // Ensure key controls inherit even if Wix applies weird global button/input styles
+  if (btn) btn.style.fontFamily = "inherit";
+  panel.style.fontFamily = "inherit";
+
 
   AUREA_HOST.style.position = "fixed";
   AUREA_HOST.style.inset = "0";

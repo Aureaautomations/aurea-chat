@@ -153,8 +153,8 @@ function buildJob4Reply(routeFacts = {}) {
   // B) No availability
   if (noAvail) {
     return (
-      "Got it — there aren’t any times that fit right now.\n\n" +
-      "If you leave your email or phone, I’ll follow up when a good opening comes up and include the best options."
+      "Got it, there aren’t any times that fit right now.\n\n" +
+      "If you leave your email or phone, someone from the clinic can reach out to help you find a time."
     );
   }
 

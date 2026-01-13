@@ -635,9 +635,16 @@ app.post("/chat", async (req, res) => {
       return null;
     }
     
-    // Deterministic CTA type (model never chooses)
+    // Deterministic CTA type: ALWAYS derived from routed job (router never needs to set route.cta)
     const pricingIntent = !!route?.facts?.pricingIntent;
-    const ctaType = pricingIntent ? "LEAVE_CONTACT" : (route?.cta?.type || "BOOK_NOW");
+    
+    let ctaType = "BOOK_NOW";
+    
+    // Force CTA by job
+    if (route.job === JOBS.JOB_4) ctaType = "LEAVE_CONTACT";
+    else if (route.job === JOBS.JOB_7) ctaType = "ESCALATE";
+    else if (route.job === JOBS.JOB_2) ctaType = "BOOK_NOW"; // later you can switch to CHOOSE_TIME if you want
+    else ctaType = pricingIntent ? "LEAVE_CONTACT" : "BOOK_NOW";
     
     // ENV overrides are allowed ONLY for aurea (debug/dev), never for other clients
     const BOOKING_URL_OVERRIDE = (process.env.AUREA_BOOKING_URL_OVERRIDE || "").trim();
@@ -686,6 +693,16 @@ app.post("/chat", async (req, res) => {
             ? (process.env.AUREA_CONTACT_URL_OVERRIDE || "").trim() || null
             : null,
       },
+    });
+
+    console.log("[JOB_AND_URLS]", {
+      job: route.job,
+      ctaType,
+      bookingUrl: bookingUrl || null,
+      contactUrl: contactUrl || null,
+      escalateUrl: escalateUrl || null,
+      allowEnvFallback,
+      clientId: client.clientId
     });
 
     // Strict hide: if required URL is missing, return NO CTA (ctaUrl = null)

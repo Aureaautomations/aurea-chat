@@ -519,6 +519,24 @@ app.post("/chat", async (req, res) => {
       channel: req.body?.channel || "widget",
     });
 
+    console.log("[ROUTE_STEP_0_AFTER_ROUTE_MESSAGE]", {
+      clientId: client.clientId,
+      incomingSignals: {
+        lastJob: req.body?.signals?.lastJob || null,
+        leadOfferMade: !!req.body?.signals?.leadOfferMade,
+        bookingPageOpened: !!req.body?.signals?.bookingPageOpened,
+        lastCtaClicked: req.body?.signals?.lastCtaClicked || null,
+      },
+      routeJob: route?.job || null,
+      routeFacts: {
+        noAvailability: !!route?.facts?.noAvailability,
+        bookingDecline: !!route?.facts?.bookingDecline,
+        cannotBookNow: !!route?.facts?.cannotBookNow,
+        wantsReminderLater: !!route?.facts?.wantsReminderLater,
+        bookingBlocked: !!route?.facts?.bookingBlocked,
+      },
+    });
+
     const noAvailabilityIntent = detectNoAvailabilityIntent(userMessage || "");
 
     // If the user says there’s no availability / no times, force Job 4 + lead capture
@@ -561,6 +579,12 @@ app.post("/chat", async (req, res) => {
       route.job = JOBS.JOB_1;
       route.cta = { type: "BOOK_NOW" };
     }
+
+    console.log("[ROUTE_STEP_1_AFTER_JOB_DISABLES]", {
+      clientId: client.clientId,
+      jobDisables: client?.jobDisables || null,
+      finalJobAfterDisables: route.job,
+    });
 
     console.log("[ROUTE]", route);
     console.log("[ROUTER_FACTS]", {

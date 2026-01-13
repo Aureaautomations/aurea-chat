@@ -456,9 +456,16 @@ function detectReminderIntent(text = "") {
 function detectNoAvailabilityIntent(text = "") {
   const t = String(text || "").toLowerCase();
 
+  // tolerate common misspellings like "availabillity" / "availibility"
+  const hasNo = /\bno\b/.test(t);
+  const hasAvailabStem = /\bavailab/i.test(t); // matches availab..., including many misspellings
+  const hasTimesWords = /\b(times?|openings?|slots?)\b/.test(t);
+
   return (
-    /\b(no availability|no avail|no times|no openings|no slots|nothing available|fully booked|booked up|all booked|sold out)\b/.test(t) ||
-    (t.includes("no") && (t.includes("availability") || t.includes("openings") || t.includes("times")))
+    // strong phrases
+    /\b(no\s*availab\w*|no\s*times?|no\s*openings?|no\s*slots?|nothing available|fully booked|booked up|all booked|sold out)\b/.test(t) ||
+    // weaker but common: "no" + ("availab..." or "times/openings/slots")
+    (hasNo && (hasAvailabStem || hasTimesWords))
   );
 }
 

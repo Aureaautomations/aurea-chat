@@ -453,6 +453,15 @@ function detectReminderIntent(text = "") {
   return strong.test(t) || soft.test(t);
 }
 
+function detectNoAvailabilityIntent(text = "") {
+  const t = String(text || "").toLowerCase();
+
+  return (
+    /\b(no availability|no avail|no times|no openings|no slots|nothing available|fully booked|booked up|all booked|sold out)\b/.test(t) ||
+    (t.includes("no") && (t.includes("availability") || t.includes("openings") || t.includes("times")))
+  );
+}
+
 function detectContactRequest(text = "") {
   const t = String(text || "").toLowerCase();
   return /\b(call me|phone me|give me a call|can you call|talk to someone|speak to someone|contact me)\b/.test(t);
@@ -509,6 +518,17 @@ app.post("/chat", async (req, res) => {
       signals: req.body?.signals || {},
       channel: req.body?.channel || "widget",
     });
+
+    const noAvailabilityIntent = detectNoAvailabilityIntent(userMessage || "");
+
+    // If the user says there’s no availability / no times, force Job 4 + lead capture
+    if (noAvailabilityIntent) {
+      route.facts = route.facts || {};
+      route.facts.noAvailability = true;
+    
+      route.job = JOBS.JOB_4;
+      route.cta = { type: "LEAVE_CONTACT" };
+    }
 
     // ✅ Reminder / follow-up intent guard (deterministic)
     // If the user asks for a reminder / follow-up, do NOT enter Job #2.

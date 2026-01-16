@@ -61,13 +61,17 @@ const JOB2_RESPONSE_SCHEMA = {
 
 app.use(express.json());
 
+// Allows navigator.sendBeacon() / simple POSTs (text/plain) without preflight
+app.use(express.text({ type: "text/plain" }));
+
 // CORS + Origin allowlist (per-client). IMPORTANT: clientId must be in header for OPTIONS preflight.
 app.use((req, res, next) => {
   const origin = req.headers.origin || null;
 
-  // Only enforce allowlist on /chat (marketing site/static assets can remain public)
-  if (req.path !== "/chat") {
-    // minimal CORS for non-/chat endpoints (optional)
+  // Enforce allowlist on /chat AND /event (everything else can remain public)
+  const needsAllowlist = req.path === "/chat" || req.path === "/event";
+  
+  if (!needsAllowlist) {
     if (origin) {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Vary", "Origin");
@@ -495,6 +499,68 @@ function containsHoursClaim(text) {
   const t = String(text || "").toLowerCase();
   return /\b(hours|open|close|closing|opening)\b/.test(t) || /\b\d{1,2}\s*(am|pm)\b/.test(t);
 }
+
+// NEW: analytics event endpoint (fire-and-forget)
+app.post("/event", (req, res) => {
+  try {
+    // clientId must work with sendBeacon (no custom headers)
+    const clientId =
+      (
+        req.headers["x-aurea-client-id"] ||
+        req.query?.clientId ||
+        (typeof req.body === "object" ? req.body?.clientId : null) ||
+        ""
+      ).toString().trim();
+
+    const client = req.aureaClient || getClientConfig(clientId);
+    if (!client) {
+      return res.status(403).end();
+    }
+
+    // Parse body (sendBeacon uses text/plain; fetch fallback may send JSON)
+    let payload = null;
+
+    if (typeof req.body === "string" && req.body.trim()) {
+      try {
+        payload = JSON.parse(req.body);
+      } catch {
+        payload = null;
+      }
+    } else if (req.body && typeof req.body === "object") {
+      payload = req.body;
+    }
+
+    if (!payload || typeof payload !== "object") {
+      return res.status(400).end();
+    }
+
+    // Only accept the one event we’re wiring right now
+    const eventName = String(payload.eventName || "").trim();
+    const ctaType = String(payload.ctaType || "").trim();
+
+    if (eventName !== "cta_clicked" || ctaType !== "BOOK_NOW") {
+      return res.status(204).end(); // ignore anything else silently
+    }
+
+    insertEventSafe({
+      eventType: "cta_clicked",
+      clientId: client.clientId,
+      conversationId: payload.conversationId || null,
+      sessionId: payload.sessionId || null,
+      pageUrl: payload.pageUrl || null,
+      job: null,
+      metadata: {
+        ctaType: "BOOK_NOW",
+        ctaUrlHost: payload.ctaUrlHost || null,
+      },
+    });
+
+    return res.status(204).end();
+  } catch (e) {
+    // never crash the app
+    return res.status(204).end();
+  }
+});
 
 // NEW: chat endpoint (memory-aware)
 app.post("/chat", async (req, res) => {

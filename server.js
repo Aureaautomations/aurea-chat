@@ -83,6 +83,10 @@ app.use((req, res, next) => {
       ""
     ).toString().trim();
 
+  // ✅ pull site context from widget payload
+  const siteContext = req.body?.siteContext;
+  const meta = req.body?.meta;
+
   // Always advertise the headers/methods we accept
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Aurea-Client-Id");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
@@ -615,10 +619,6 @@ app.post("/chat", async (req, res) => {
       lastCtaClicked: req.body?.signals?.lastCtaClicked || null,
       bookingPageOpened: !!req.body?.signals?.bookingPageOpened,
     });
-
-    // ✅ pull site context from widget payload
-    const siteContext = req.body?.siteContext;
-    const meta = req.body?.meta;
     
     // ✅ compute site key + context hash
     const siteKey = getSiteKey(meta?.siteKeyOverride || siteContext?.origin || meta?.pageUrl);

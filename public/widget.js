@@ -282,6 +282,28 @@ async function getSiteContextV2() {
     return saveSignals(next);
   }
 
+  function sendAureaEvent(eventPayload) {
+  try {
+    const url = `https://chat.aureaautomations.com/event?clientId=${encodeURIComponent(CLIENT_ID)}`;
+    const body = JSON.stringify(eventPayload);
+
+    // Prefer sendBeacon to survive navigation
+    if (navigator.sendBeacon) {
+      return navigator.sendBeacon(url, body); // sends as text/plain
+    }
+
+    // Fallback: keepalive fetch (also text/plain to avoid preflight)
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // never block UX
+  }
+}
+
   function safeJsonParse(value, fallback) {
     try {
       const parsed = JSON.parse(value);
@@ -801,36 +823,53 @@ async function getSiteContextV2() {
     return null;
   }
 
-    function renderDeterministicCTA(ctaType, bookingUrl) {
-      // remove any existing CTA (we only want one visible at a time)
-      const existing = document.getElementById("aurea-cta-wrap");
-      if (existing) existing.remove();
+  function renderDeterministicCTA(ctaType, bookingUrl) {
+    // remove any existing CTA (we only want one visible at a time)
+    const existing = document.getElementById("aurea-cta-wrap");
+    if (existing) existing.remove();
+  
+    if (!bookingUrl || typeof bookingUrl !== "string") return;
+  
+    const wrap = document.createElement("div");
+    wrap.id = "aurea-cta-wrap";
+    wrap.style.marginBottom = "10px";
+    wrap.style.display = "flex";
+    wrap.style.justifyContent = "flex-start";
+  
+    const btn = document.createElement("a");
+    btn.id = "aurea-cta";
+    btn.href = bookingUrl;
+    btn.target = "_blank";
+    btn.rel = "noopener noreferrer";
+    btn.textContent = ctaLabel(ctaType);
+    btn.addEventListener("click", () => {
+      const isBookingCta = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType);
     
-      if (!bookingUrl || typeof bookingUrl !== "string") return;
-    
-      const wrap = document.createElement("div");
-      wrap.id = "aurea-cta-wrap";
-      wrap.style.marginBottom = "10px";
-      wrap.style.display = "flex";
-      wrap.style.justifyContent = "flex-start";
-    
-      const btn = document.createElement("a");
-      btn.id = "aurea-cta";
-      btn.href = bookingUrl;
-      btn.target = "_blank";
-      btn.rel = "noopener noreferrer";
-      btn.textContent = ctaLabel(ctaType);
-
-      btn.addEventListener("click", () => {
-        const isBookingCta = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType);
-      
-        setSignal({
-          lastCtaClicked: ctaType,
-          bookingPageOpened: isBookingCta ? true : false,
-          contactPageOpened: ctaType === "LEAVE_CONTACT" ? true : false,
-        });
+      setSignal({
+        lastCtaClicked: ctaType,
+        bookingPageOpened: isBookingCta ? true : false,
+        contactPageOpened: ctaType === "LEAVE_CONTACT" ? true : false,
       });
     
+      // Analytics (Step 1): only track BOOK_NOW clicks
+      if (ctaType === "BOOK_NOW") {
+        let host = null;
+        try {
+          host = new URL(bookingUrl, window.location.href).host;
+        } catch {}
+    
+        sendAureaEvent({
+          eventName: "cta_clicked",
+          ctaType: "BOOK_NOW",
+          clientId: CLIENT_ID,
+          conversationId: getConversationId(),
+          sessionId: null,
+          pageUrl: window.location.href,
+          ctaUrlHost: host,
+          ts: new Date().toISOString(),
+        });
+      }
+    });
       // inline styles only
       btn.style.display = "inline-flex";
       btn.style.alignItems = "center";
@@ -852,8 +891,6 @@ async function getSiteContextV2() {
       messagesEl.appendChild(wrap);
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
-
-
   
   function add(role, text) {
     // Normalize role names for UI

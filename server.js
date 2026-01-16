@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const { routeMessage, JOBS } = require("./router");
 const { getClientConfig, isOriginAllowed } = require("./clients");
+const { insertEventSafe } = require("./db");
 
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -594,6 +595,19 @@ app.post("/chat", async (req, res) => {
     });
 
     console.log("[ROUTE]", route);
+
+    insertEventSafe({
+      eventType: "job_routed",
+      clientId: client.clientId,
+      conversationId: conversationId || null,
+      sessionId: req.body?.sessionId || null,
+      pageUrl: meta?.pageUrl || null,
+      job: route?.job || null,
+      metadata: {
+        routerBuild: route?._routerBuild || null,
+      },
+    });
+    
     console.log("[ROUTER_FACTS]", {
       desiredDay: route?.facts?.desiredDay || null,
       desiredTimeWindow: route?.facts?.desiredTimeWindow || null,

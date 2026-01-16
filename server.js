@@ -504,6 +504,8 @@ app.post("/chat", async (req, res) => {
     const history = sanitizeHistory(req.body?.history);
     const clientId =
       (req.headers["x-aurea-client-id"] || req.body?.clientId || "").toString().trim();
+    const meta = req.body?.meta || null;
+    const siteContext = req.body?.siteContext || null;
 
     // middleware already validated this for /chat, but keep a hard check
     const client = req.aureaClient || getClientConfig(clientId);

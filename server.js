@@ -542,18 +542,20 @@ app.post("/event", (req, res) => {
       return res.status(204).end(); // ignore anything else silently
     }
 
-    insertEventSafe({
-      eventType: "cta_clicked",
-      clientId: client.clientId,
-      conversationId: payload.conversationId || null,
-      sessionId: payload.sessionId || null,
-      pageUrl: payload.pageUrl || null,
-      job: null,
-      metadata: {
-        ctaType: "BOOK_NOW",
-        ctaUrlHost: payload.ctaUrlHost || null,
-      },
-    });
+  console.log("[EVENT_ACCEPTED]", { eventName, ctaType, clientId: client.clientId });
+    
+  insertEventSafe({
+    eventType: "cta_clicked",
+    clientId: client.clientId,
+    conversationId: payload.conversationId || null,
+    sessionId: payload.sessionId || null,
+    pageUrl: payload.pageUrl || null,
+    ctaType: "BOOK_NOW", // ✅ real column
+    job: null,
+    metadata: {
+      ctaUrlHost: payload.ctaUrlHost || null,
+    },
+  });
 
     return res.status(204).end();
   } catch (e) {

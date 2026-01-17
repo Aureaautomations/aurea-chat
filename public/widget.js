@@ -823,6 +823,30 @@ async function getSiteContextV2() {
     return null;
   }
 
+  function sendEventBeacon(payload) {
+    try {
+      const url = `https://chat.aureaautomations.com/event?clientId=${encodeURIComponent(CLIENT_ID)}`;
+      const body = JSON.stringify(payload || {});
+  
+      // Prefer sendBeacon (no CORS preflight, survives page nav)
+      if (navigator.sendBeacon) {
+        const blob = new Blob([body], { type: "text/plain" });
+        navigator.sendBeacon(url, blob);
+        return;
+      }
+  
+      // Fallback
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      // never throw
+    }
+  }
+  
   function renderDeterministicCTA(ctaType, bookingUrl) {
     // remove any existing CTA (we only want one visible at a time)
     const existing = document.getElementById("aurea-cta-wrap");
@@ -843,14 +867,25 @@ async function getSiteContextV2() {
     btn.rel = "noopener noreferrer";
     btn.textContent = ctaLabel(ctaType);
     btn.addEventListener("click", () => {
-      const isBookingCta = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType);
+    const isBookingCta = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType);
     
-      setSignal({
-        lastCtaClicked: ctaType,
-        bookingPageOpened: isBookingCta ? true : false,
-        contactPageOpened: ctaType === "LEAVE_CONTACT" ? true : false,
-      });
-    
+    setSignal({
+      lastCtaClicked: ctaType,
+      bookingPageOpened: isBookingCta ? true : false,
+      contactPageOpened: ctaType === "LEAVE_CONTACT" ? true : false,
+    });
+
+    sendEventBeacon({
+      eventName: "cta_clicked",
+      ctaType: ctaType,                 // should be "BOOK_NOW" in your current flows
+      clientId: CLIENT_ID,
+      pageUrl: window.location.href,
+      conversationId: getConversationId(),
+      ctaUrlHost: (() => {
+        try { return new URL(bookingUrl).host; } catch { return null; }
+      })(),
+    });
+
       // Analytics (Step 1): only track BOOK_NOW clicks
       if (ctaType === "BOOK_NOW") {
         let host = null;

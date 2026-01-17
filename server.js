@@ -83,7 +83,6 @@ app.use((req, res, next) => {
     (
       req.headers["x-aurea-client-id"] ||
       req.query?.clientId ||
-      req.body?.clientId ||
       ""
     ).toString().trim();
 

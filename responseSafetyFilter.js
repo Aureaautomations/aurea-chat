@@ -56,10 +56,16 @@ function containsHoursClaim(text) {
   return false;
 }
 
-function safeCtaInstruction(ctaType) {
+function safeCtaInstruction(ctaType, ctaUrl) {
+  const hasCta = typeof ctaUrl === "string" && ctaUrl.trim().length > 0;
+
+  // If there is NO CTA, do not tell them to tap a button.
+  if (!hasCta) {
+    return "I can help with services, pricing, or how booking works — what do you want to know?";
+  }
+
   if (ctaType === "LEAVE_CONTACT") return 'Tap “Leave contact info” and the team will follow up.';
   if (ctaType === "ESCALATE") return "Please use the button below to contact the team.";
-  // BOOK_NOW / default
   return 'Tap “Book now” to choose an available time.';
 }
 
@@ -67,33 +73,33 @@ function safeCtaInstruction(ctaType) {
  * V1 filter: does NOT change ctaType/ctaUrl.
  * It only rewrites reply text to enforce rules.
  */
-function applyResponseSafetyFilter({ reply, ctaType, businessSummary }) {
+function applyResponseSafetyFilter({ reply, ctaType, ctaUrl, businessSummary }) {
   let text = normalizeText(reply);
 
   // 1) Strip/replace any in-chat contact capture language
   if (containsContactCollection(text)) {
     // If the CTA is LEAVE_CONTACT, keep it aligned.
     // Otherwise, fall back to a safe generic next step that matches CTA.
-    text = safeCtaInstruction(ctaType);
+    text = safeCtaInstruction(ctaType, ctaUrl);
   }
 
   // 2) Remove “I can’t find booking/contact” phrasing (even if true)
   if (containsCantFindLinkLanguage(text)) {
     // If CTA URL is missing, we still must not say "can't find".
     // Give a neutral instruction that doesn't claim availability.
-    text = safeCtaInstruction(ctaType);
+    text = safeCtaInstruction(ctaType, ctaUrl);
   }
 
   // 3) Capability drift (email/text/call/reminders/booking confirmation)
   if (containsCapabilityDrift(text)) {
-    text = safeCtaInstruction(ctaType);
+    text = safeCtaInstruction(ctaType, ctaUrl);
   }
 
   // 4) Hours hallucination guard (only allowed if BUSINESS_SUMMARY.hours exists)
   const hasHours = !!(businessSummary && businessSummary.hours);
   if (!hasHours && containsHoursClaim(text)) {
     // Don’t claim hours. Redirect to booking CTA.
-    text = 'I don’t see hours listed on this page. ' + safeCtaInstruction(ctaType);
+    text = 'I don’t see hours listed on this page. ' + safeCtaInstruction(ctaType, ctaUrl);
   }
 
   // 5) Pricing hallucination guard (only allowed if BUSINESS_SUMMARY.pricing has items)

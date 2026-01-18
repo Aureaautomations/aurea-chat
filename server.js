@@ -533,28 +533,49 @@ app.post("/event", (req, res) => {
       return res.status(400).end();
     }
 
-    // Only accept the one event we’re wiring right now
+    // Accept: cta_clicked + booking_page_opened (BOOK_NOW only)
     const eventName = String(payload.eventName || "").trim();
     const ctaType = String(payload.ctaType || "").trim();
 
-    if (eventName !== "cta_clicked" || ctaType !== "BOOK_NOW") {
+    const allowed =
+      ctaType === "BOOK_NOW" &&
+      (eventName === "cta_clicked" || eventName === "booking_page_opened");
+
+    if (!allowed) {
       return res.status(204).end(); // ignore anything else silently
     }
 
-  console.log("[EVENT_ACCEPTED]", { eventName, ctaType, clientId: client.clientId });
-    
-  insertEventSafe({
-    eventType: "cta_clicked",
-    clientId: client.clientId,
-    conversationId: payload.conversationId || null,
-    sessionId: payload.sessionId || null,
-    pageUrl: payload.pageUrl || null,
-    ctaType: "BOOK_NOW", // ✅ real column
-    job: null,
-    metadata: {
-      ctaUrlHost: payload.ctaUrlHost || null,
-    },
-  });
+    console.log("[EVENT_ACCEPTED]", { eventName, ctaType, clientId: client.clientId });
+
+    if (eventName === "cta_clicked") {
+      insertEventSafe({
+        eventType: "cta_clicked",
+        clientId: client.clientId,
+        conversationId: payload.conversationId || null,
+        sessionId: payload.sessionId || null,
+        pageUrl: payload.pageUrl || null,
+        ctaType: "BOOK_NOW",
+        job: null,
+        metadata: {
+          ctaUrlHost: payload.ctaUrlHost || null,
+        },
+      });
+    }
+
+    if (eventName === "booking_page_opened") {
+      insertEventSafe({
+        eventType: "booking_page_opened",
+        clientId: client.clientId,
+        conversationId: payload.conversationId || null,
+        sessionId: payload.sessionId || null,
+        pageUrl: payload.pageUrl || null,
+        ctaType: "BOOK_NOW",
+        job: null,
+        metadata: {
+          bookingUrlHost: payload.bookingUrlHost || null,
+        },
+      });
+    }
 
     return res.status(204).end();
   } catch (e) {

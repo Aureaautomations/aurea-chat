@@ -868,43 +868,45 @@ async function getSiteContextV2() {
     btn.textContent = ctaLabel(ctaType);
     btn.addEventListener("click", () => {
     const isBookingCta = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType);
-    
+  
     setSignal({
       lastCtaClicked: ctaType,
       bookingPageOpened: isBookingCta ? true : false,
       contactPageOpened: ctaType === "LEAVE_CONTACT" ? true : false,
     });
-
-    sendEventBeacon({
-      eventName: "cta_clicked",
-      ctaType: ctaType,                 // should be "BOOK_NOW" in your current flows
-      clientId: CLIENT_ID,
-      pageUrl: window.location.href,
-      conversationId: getConversationId(),
-      ctaUrlHost: (() => {
-        try { return new URL(bookingUrl).host; } catch { return null; }
-      })(),
-    });
-
-      // Analytics (Step 1): only track BOOK_NOW clicks
-      if (ctaType === "BOOK_NOW") {
-        let host = null;
-        try {
-          host = new URL(bookingUrl, window.location.href).host;
-        } catch {}
-    
-        sendAureaEvent({
-          eventName: "cta_clicked",
-          ctaType: "BOOK_NOW",
-          clientId: CLIENT_ID,
-          conversationId: getConversationId(),
-          sessionId: null,
-          pageUrl: window.location.href,
-          ctaUrlHost: host,
-          ts: new Date().toISOString(),
-        });
-      }
-    });
+  
+    // Analytics: only track BOOK_NOW (deterministic funnel)
+    if (ctaType === "BOOK_NOW") {
+      let host = null;
+      try {
+        host = new URL(bookingUrl, window.location.href).host;
+      } catch {}
+  
+      // 1) intent (click)
+      sendEventBeacon({
+        eventName: "cta_clicked",
+        ctaType: "BOOK_NOW",
+        clientId: CLIENT_ID,
+        conversationId: getConversationId(),
+        sessionId: null,
+        pageUrl: window.location.href,
+        ctaUrlHost: host,
+        ts: new Date().toISOString(),
+      });
+  
+      // 2) handoff (page opened)
+      sendEventBeacon({
+        eventName: "booking_page_opened",
+        ctaType: "BOOK_NOW",
+        clientId: CLIENT_ID,
+        conversationId: getConversationId(),
+        sessionId: null,
+        pageUrl: window.location.href,
+        bookingUrlHost: host,
+        ts: new Date().toISOString(),
+      });
+    }
+  });
       // inline styles only
       btn.style.display = "inline-flex";
       btn.style.alignItems = "center";

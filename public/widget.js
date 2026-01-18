@@ -794,158 +794,162 @@ async function getSiteContextV2() {
     function ctaLabel(ctaType) {
       switch (ctaType) {
         case "BOOK_NOW": return "Book now";
-        case "CHOOSE_TIME": return "Choose a time";
         case "LEAVE_CONTACT": return "Leave contact info";
         case "ESCALATE": return "Contact the clinic";
         default: return "Book now";
       }
     }
-
+  
     function resolveStrictCtaUrl(d, ctaType) {
-    // Strict mapping only. No generic fallback.
-    // If required URL is missing -> return null (CTA hidden).
-    if (!d || typeof d !== "object") return null;
-  
-    const norm = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
-  
-    if (ctaType === "BOOK_NOW" || ctaType === "CHOOSE_TIME" || ctaType === "CONFIRM_BOOKING") {
-      return norm(d.bookingUrl);
+      if (!d || typeof d !== "object") return null;
+    
+      const norm = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
+    
+      if (ctaType === "BOOK_NOW") return norm(d.bookingUrl);
+      if (ctaType === "LEAVE_CONTACT") return norm(d.contactUrl);
+      if (ctaType === "ESCALATE") return norm(d.escalateUrl);
+    
+      return null;
     }
-  
-    if (ctaType === "LEAVE_CONTACT") {
-      return norm(d.contactUrl);
-    }
-  
-    if (ctaType === "ESCALATE") {
-      return norm(d.escalateUrl);
-    }
-  
-    return null;
-  }
 
-  function sendEventBeacon(payload) {
-    try {
-      const url = `https://chat.aureaautomations.com/event?clientId=${encodeURIComponent(CLIENT_ID)}`;
-      const body = JSON.stringify(payload || {});
-  
-      // Prefer sendBeacon (no CORS preflight, survives page nav)
-      if (navigator.sendBeacon) {
-        const blob = new Blob([body], { type: "text/plain" });
-        navigator.sendBeacon(url, blob);
-        return;
+    function sendEventBeacon(payload) {
+      try {
+        const url = `https://chat.aureaautomations.com/event?clientId=${encodeURIComponent(CLIENT_ID)}`;
+        const body = JSON.stringify(payload || {});
+    
+        // Prefer sendBeacon (no CORS preflight, survives page nav)
+        if (navigator.sendBeacon) {
+          const blob = new Blob([body], { type: "text/plain" });
+          navigator.sendBeacon(url, blob);
+          return;
+        }
+    
+        // Fallback
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body,
+          keepalive: true,
+        }).catch(() => {});
+      } catch {
+        // never throw
       }
-  
-      // Fallback
-      fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body,
-        keepalive: true,
-      }).catch(() => {});
-    } catch {
-      // never throw
     }
-  }
   
-  function renderDeterministicCTA(ctaType, bookingUrl) {
-    // remove any existing CTA (we only want one visible at a time)
-    const existing = document.getElementById("aurea-cta-wrap");
-    if (existing) existing.remove();
-  
-    if (!bookingUrl || typeof bookingUrl !== "string") return;
-  
-    const wrap = document.createElement("div");
-    wrap.id = "aurea-cta-wrap";
-    wrap.style.marginBottom = "10px";
-    wrap.style.display = "flex";
-    wrap.style.justifyContent = "flex-start";
-  
-    const btn = document.createElement("a");
-    btn.id = "aurea-cta";
-    btn.href = bookingUrl;
-    btn.target = "_blank";
-    btn.rel = "noopener noreferrer";
-    btn.textContent = ctaLabel(ctaType);
-    btn.addEventListener("click", () => {
-    const isBookingCta = ["BOOK_NOW", "CHOOSE_TIME", "CONFIRM_BOOKING"].includes(ctaType);
-  
-    setSignal({
-      lastCtaClicked: ctaType,
-      bookingPageOpened: isBookingCta ? true : false,
-      contactPageOpened: ctaType === "LEAVE_CONTACT" ? true : false,
-    });
-  
-    // Analytics: only track BOOK_NOW (deterministic funnel)
-    if (ctaType === "BOOK_NOW") {
-      let host = null;
-      try {
-        host = new URL(bookingUrl, window.location.href).host;
-      } catch {}
-  
-      // 1) intent (click)
-      sendEventBeacon({
-        eventName: "cta_clicked",
-        ctaType: "BOOK_NOW",
-        clientId: CLIENT_ID,
-        conversationId: getConversationId(),
-        sessionId: null,
-        pageUrl: window.location.href,
-        ctaUrlHost: host,
-        ts: new Date().toISOString(),
-      });
-  
-      // 2) handoff (page opened)
-      sendEventBeacon({
-        eventName: "booking_page_opened",
-        ctaType: "BOOK_NOW",
-        clientId: CLIENT_ID,
-        conversationId: getConversationId(),
-        sessionId: null,
-        pageUrl: window.location.href,
-        bookingUrlHost: host,
-        ts: new Date().toISOString(),
-      });
-    }
-
-    if (ctaType === "LEAVE_CONTACT") {
-      let host = null;
-      try {
-        host = new URL(bookingUrl, window.location.href).host;
-      } catch {}
-  
-      sendEventBeacon({
-        eventName: "contact_page_opened",
-        ctaType: "LEAVE_CONTACT",
-        clientId: CLIENT_ID,
-        conversationId: getConversationId(),
-        sessionId: null,
-        pageUrl: window.location.href,
-        contactUrlHost: host,
-        ts: new Date().toISOString(),
-      });
-    }
-  });
-      // inline styles only
-      btn.style.display = "inline-flex";
-      btn.style.alignItems = "center";
-      btn.style.justifyContent = "center";
-      btn.style.whiteSpace = "nowrap";
-      btn.style.marginTop = "2px";
-      btn.style.padding = "10px 14px";
-      btn.style.background = "#111";
-      btn.style.color = "#fff";
-      btn.style.borderRadius = "10px";
-      btn.style.textDecoration = "none";
-      btn.style.fontWeight = "600";
-      btn.style.border = "1px solid #111";
+    function renderDeterministicCTA(primaryCtaType, primaryUrl, secondaryCtaType, secondaryUrl) {
+      // remove any existing CTA wrap
+      const existing = document.getElementById("aurea-cta-wrap");
+      if (existing) existing.remove();
     
-      btn.addEventListener("mouseenter", () => (btn.style.opacity = "0.85"));
-      btn.addEventListener("mouseleave", () => (btn.style.opacity = "1"));
+      // If nothing to show, bail
+      const hasPrimary = primaryUrl && typeof primaryUrl === "string";
+      const hasSecondary = secondaryUrl && typeof secondaryUrl === "string";
+      if (!hasPrimary && !hasSecondary) return;
     
-      wrap.appendChild(btn);
+      const wrap = document.createElement("div");
+      wrap.id = "aurea-cta-wrap";
+      wrap.style.marginBottom = "10px";
+      wrap.style.display = "flex";
+      wrap.style.gap = "10px";
+      wrap.style.flexWrap = "wrap";
+      wrap.style.justifyContent = "flex-start";
+    
+      function makeBtn(ctaType, url, variant) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = ctaLabel(ctaType);
+    
+        a.addEventListener("click", () => {
+          const isBooking = ctaType === "BOOK_NOW";
+    
+          setSignal({
+            lastCtaClicked: ctaType,
+            bookingPageOpened: isBooking ? true : false,
+            contactPageOpened: ctaType === "LEAVE_CONTACT" ? true : false,
+          });
+    
+          // Analytics: track deterministic events you already support
+          if (ctaType === "BOOK_NOW") {
+            let host = null;
+            try { host = new URL(url, window.location.href).host; } catch {}
+    
+            sendEventBeacon({
+              eventName: "cta_clicked",
+              ctaType: "BOOK_NOW",
+              clientId: CLIENT_ID,
+              conversationId: getConversationId(),
+              sessionId: null,
+              pageUrl: window.location.href,
+              ctaUrlHost: host,
+              ts: new Date().toISOString(),
+            });
+    
+            sendEventBeacon({
+              eventName: "booking_page_opened",
+              ctaType: "BOOK_NOW",
+              clientId: CLIENT_ID,
+              conversationId: getConversationId(),
+              sessionId: null,
+              pageUrl: window.location.href,
+              bookingUrlHost: host,
+              ts: new Date().toISOString(),
+            });
+          }
+    
+          if (ctaType === "LEAVE_CONTACT") {
+            let host = null;
+            try { host = new URL(url, window.location.href).host; } catch {}
+    
+            sendEventBeacon({
+              eventName: "contact_page_opened",
+              ctaType: "LEAVE_CONTACT",
+              clientId: CLIENT_ID,
+              conversationId: getConversationId(),
+              sessionId: null,
+              pageUrl: window.location.href,
+              contactUrlHost: host,
+              ts: new Date().toISOString(),
+            });
+          }
+        });
+    
+        // Shared styling
+        a.style.display = "inline-flex";
+        a.style.alignItems = "center";
+        a.style.justifyContent = "center";
+        a.style.whiteSpace = "nowrap";
+        a.style.padding = "10px 14px";
+        a.style.borderRadius = "10px";
+        a.style.textDecoration = "none";
+        a.style.fontWeight = "600";
+        a.style.cursor = "pointer";
+        a.style.userSelect = "none";
+    
+        if (variant === "primary") {
+          a.style.background = "#111";
+          a.style.color = "#fff";
+          a.style.border = "1px solid #111";
+        } else {
+          a.style.background = "#fff";
+          a.style.color = "#111";
+          a.style.border = "1px solid #d7d7d7";
+        }
+    
+        a.addEventListener("mouseenter", () => (a.style.opacity = "0.85"));
+        a.addEventListener("mouseleave", () => (a.style.opacity = "1"));
+    
+        return a;
+      }
+    
+      if (hasPrimary) wrap.appendChild(makeBtn(primaryCtaType, primaryUrl, "primary"));
+      if (hasSecondary) wrap.appendChild(makeBtn(secondaryCtaType, secondaryUrl, "secondary"));
+    
       messagesEl.appendChild(wrap);
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
+
   
   function add(role, text) {
     // Normalize role names for UI
@@ -1100,17 +1104,15 @@ async function getSiteContextV2() {
       add("assistant", reply);
       pushToHistory("assistant", reply);
       
-      const ctaType = d.ctaType || "BOOK_NOW";
-      const strictCtaUrl = resolveStrictCtaUrl(d, ctaType);
+      const primaryCtaType = d.ctaType || "BOOK_NOW";
+      const primaryUrl = resolveStrictCtaUrl(d, primaryCtaType);
       
-      // Job #4 one-shot gating: only mark leadOfferMade when Job #4 actually ran
-      const job = d?.route?.job || "";
-      if (job === "JOB_4_CAPTURE_LEAD") {
-        setSignal({ leadOfferMade: true });
-      }
+      // Always offer the other main action as secondary (V1)
+      const secondaryCtaType = primaryCtaType === "LEAVE_CONTACT" ? "BOOK_NOW" : "LEAVE_CONTACT";
+      const secondaryUrl = resolveStrictCtaUrl(d, secondaryCtaType);
       
-      renderDeterministicCTA(ctaType, strictCtaUrl);
-      
+      renderDeterministicCTA(primaryCtaType, primaryUrl, secondaryCtaType, secondaryUrl);
+
     } catch {
       removeTyping();
       add("assistant", "Error. Try again.");
@@ -1141,7 +1143,10 @@ async function getSiteContextV2() {
       pushToHistory("assistant", GREETING);
       historyRendered = true;
     }
-  
+
+    const existing = document.getElementById("aurea-cta-wrap");
+    if (existing) existing.remove();
+
     setTimeout(() => {
       inputEl.focus();
       // if you implemented textarea autosizeInput(), keep this:

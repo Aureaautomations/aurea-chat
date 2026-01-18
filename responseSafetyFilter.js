@@ -81,6 +81,8 @@ function safeCtaInstruction(ctaType, ctaUrl) {
  */
 function applyResponseSafetyFilter({ reply, ctaType, ctaUrl, businessSummary }) {
   let text = normalizeText(reply);
+  const reasons = [];
+  const original = text;
 
   // 1) Strip/replace any in-chat contact capture language
   if (containsContactCollection(text)) {

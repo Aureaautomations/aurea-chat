@@ -944,7 +944,7 @@ app.post("/chat", async (req, res) => {
       }
     
       // 2) Deterministic hours path (prevents weird phrasing/hallucination)
-      else if (isHoursQuestion(latestTrimmed)) {
+      else if (isHoursQuestion(latestTrimmed) && !detectNoAvailabilityIntent(latestTrimmed)) {
         if (businessSummary?.hours) {
           aiReply = `Hours: ${String(businessSummary.hours).trim()}\n\nDo you want to book, or ask about services?`;
         } else {
@@ -954,7 +954,7 @@ app.post("/chat", async (req, res) => {
       }
 
       // 2.5) Deterministic reschedule/cancel path (no pretending we can modify bookings)
-     else if (isRescheduleQuestion(latestTrimmed)) {
+      else if (isRescheduleQuestion(latestTrimmed)) {
       const hasBooking = !!bookingUrl;
       const hasContact = !!contactUrl;
     

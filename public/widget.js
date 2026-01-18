@@ -927,16 +927,11 @@ async function getSiteContextV2() {
         a.style.cursor = "pointer";
         a.style.userSelect = "none";
     
-        if (variant === "primary") {
-          a.style.background = "#111";
-          a.style.color = "#fff";
-          a.style.border = "1px solid #111";
-        } else {
-          a.style.background = "#fff";
-          a.style.color = "#111";
-          a.style.border = "1px solid #d7d7d7";
-        }
-    
+        // Same style for both CTAs (V1)
+        a.style.background = "#111";
+        a.style.color = "#fff";
+        a.style.border = "1px solid #111";
+
         a.addEventListener("mouseenter", () => (a.style.opacity = "0.85"));
         a.addEventListener("mouseleave", () => (a.style.opacity = "1"));
     
@@ -950,7 +945,6 @@ async function getSiteContextV2() {
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-  
   function add(role, text) {
     // Normalize role names for UI
     const isUser = role === "user";

@@ -533,14 +533,17 @@ app.post("/event", (req, res) => {
       return res.status(400).end();
     }
 
-    // Accept: cta_clicked + booking_page_opened (BOOK_NOW only)
+    // Accept:
+    // - BOOK_NOW: cta_clicked, booking_page_opened
+    // - LEAVE_CONTACT: contact_page_opened
     const eventName = String(payload.eventName || "").trim();
     const ctaType = String(payload.ctaType || "").trim();
-
+    
     const allowed =
-      ctaType === "BOOK_NOW" &&
-      (eventName === "cta_clicked" || eventName === "booking_page_opened");
-
+      (ctaType === "BOOK_NOW" &&
+        (eventName === "cta_clicked" || eventName === "booking_page_opened")) ||
+      (ctaType === "LEAVE_CONTACT" && eventName === "contact_page_opened");
+    
     if (!allowed) {
       return res.status(204).end(); // ignore anything else silently
     }
@@ -573,6 +576,21 @@ app.post("/event", (req, res) => {
         job: null,
         metadata: {
           bookingUrlHost: payload.bookingUrlHost || null,
+        },
+      });
+    }
+
+    if (eventName === "contact_page_opened") {
+      insertEventSafe({
+        eventType: "contact_page_opened",
+        clientId: client.clientId,
+        conversationId: payload.conversationId || null,
+        sessionId: payload.sessionId || null,
+        pageUrl: payload.pageUrl || null,
+        ctaType: "LEAVE_CONTACT",
+        job: null,
+        metadata: {
+          contactUrlHost: payload.contactUrlHost || null,
         },
       });
     }

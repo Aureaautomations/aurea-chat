@@ -906,6 +906,24 @@ async function getSiteContextV2() {
         ts: new Date().toISOString(),
       });
     }
+
+    if (ctaType === "LEAVE_CONTACT") {
+      let host = null;
+      try {
+        host = new URL(bookingUrl, window.location.href).host;
+      } catch {}
+  
+      sendEventBeacon({
+        eventName: "contact_page_opened",
+        ctaType: "LEAVE_CONTACT",
+        clientId: CLIENT_ID,
+        conversationId: getConversationId(),
+        sessionId: null,
+        pageUrl: window.location.href,
+        contactUrlHost: host,
+        ts: new Date().toISOString(),
+      });
+    }
   });
       // inline styles only
       btn.style.display = "inline-flex";

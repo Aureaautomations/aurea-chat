@@ -140,44 +140,37 @@ function buildJob4Reply(routeFacts = {}) {
   const cannotBookNow = !!routeFacts.cannotBookNow;
   const wantsReminderLater = !!routeFacts.wantsReminderLater;
 
-  // A0) Wants to book later (delay, not schedule confusion)
-  // Router only sets wantsReminderLater when bookingContext exists.
+  // V1 rule: no contact capture inside chat.
+  // Always route them to the LEAVE_CONTACT CTA.
   if (wantsReminderLater) {
     return (
       "No problem — you don’t have to book right now.\n\n" +
-      "If you leave your email or phone, the team can reach out with the booking link when it makes sense."
+      "Tap “Leave contact info” and the team can follow up when it makes sense."
     );
   }
-  
-  // A) Schedule not set yet (cannot book right now)
-  // Router only sends Job #4 for cannotBookNow when bookingContext exists, so this copy can assume intent.
+
   if (cannotBookNow) {
     return (
       "Totally fair — if you don’t know your schedule yet, you don’t have to book right now.\n\n" +
-      "If you leave your email or phone, our team can follow up with the booking link when it makes sense."
+      "Tap “Leave contact info” and the team can follow up when you’re ready."
     );
   }
 
-  // B) No availability
   if (noAvail) {
     return (
-      "Got it, there aren’t any times that fit right now.\n\n" +
-      "If you leave your email or phone, someone from the clinic can reach out to help you find a time."
+      "Got it — nothing is fitting right now.\n\n" +
+      "Tap “Leave contact info” and the team can help you find a time."
     );
   }
 
-  // C) Explicit booking decline
   if (declined) {
     return (
       "No problem.\n\n" +
-      "If you leave your email or phone, I can send you the key details to review later so you don’t have to keep checking back."
+      "If you want, tap “Leave contact info” and the team can send you the key details later."
     );
   }
 
-  // D) Fallback (should be rare)
-  return (
-    "If you leave your email or phone, I can follow up with the details you were looking for."
-  );
+  return "Tap “Leave contact info” and the team will follow up.";
 }
 
 function buildJob7Reply(routeFacts = {}) {
@@ -494,11 +487,6 @@ function getBookingHandoffSentence(client) {
   return "I can’t book it directly here. I’ll send you to the booking page to choose the exact time.";
 }
 
-function containsHoursClaim(text) {
-  const t = String(text || "").toLowerCase();
-  return /\b(hours|open|close|closing|opening)\b/.test(t) || /\b\d{1,2}\s*(am|pm)\b/.test(t);
-}
-
 // NEW: analytics event endpoint (fire-and-forget)
 app.post("/event", (req, res) => {
   try {
@@ -775,10 +763,12 @@ app.post("/chat", async (req, res) => {
         content:
           AUREA_SYSTEM_PROMPT +
           "\n\nRules for using Business Summary:\n" +
-          "- Use BUSINESS_SUMMARY as the source of truth for services, pricing, hours, booking links.\n" +
+          "- Use BUSINESS_SUMMARY ONLY as the source of truth for services, pricing, and hours.\n" +
+          "- Do NOT use BUSINESS_SUMMARY to decide whether booking/contact is available.\n" +
+          "- Booking and contact are handled via the CTA buttons provided by the widget.\n" +
+          "- Never say you “can’t find” booking or contact. If asked, direct them to the relevant CTA.\n" +
           "- Do NOT guess. If pricing is not present, say: \"I don’t see pricing listed on this page.\" \n" +
-          "- If pricing IS present, list plans/prices clearly in bullet points.\n" +
-          "- Do NOT include links. If the user asks how to book, tell them to use the CTA button.\n",
+          "- Do NOT include any URLs.\n",
       },
       {
         role: "system",
@@ -787,6 +777,26 @@ app.post("/chat", async (req, res) => {
           JSON.stringify(businessSummary),
       },
     ];
+
+    function buildCtaSystemMessage(ctaType) {
+      const primary =
+        ctaType === "LEAVE_CONTACT" ? "LEAVE_CONTACT" :
+        ctaType === "ESCALATE" ? "ESCALATE" :
+        "BOOK_NOW";
+    
+      return {
+        role: "system",
+        content:
+          "CTA_STATE (authoritative):\n" +
+          `- primary_cta: ${primary}\n` +
+          "- available_ctas: BOOK_NOW, LEAVE_CONTACT\n" +
+          "- Rules:\n" +
+          "  - Do NOT ask for phone/email inside chat.\n" +
+          "  - If user wants to book, tell them to tap Book now.\n" +
+          "  - If user asks where to leave contact info, tell them to tap Leave contact info.\n" +
+          "  - Never claim booking/contact is unavailable.\n"
+      };
+    }
 
     function firstNonEmpty(...vals) {
       for (const v of vals) {
@@ -902,8 +912,9 @@ app.post("/chat", async (req, res) => {
     if (route.job === JOBS.JOB_1) {
       const jobMessages = [
         { role: "system", content: JOB1_SYSTEM_PROMPT },
-    
-        // deterministic “browse mode” immediately after Job #4
+      
+        buildCtaSystemMessage(ctaType),
+      
         ...(route?.facts?.afterLeadCapture || route?.facts?.browseIntent
           ? [{
               role: "system",
@@ -918,10 +929,10 @@ app.post("/chat", async (req, res) => {
                 "- Keep it to 1–3 sentences.\n"
             }]
           : []),
-    
+      
         ...systemMessages,
       ];
-    
+
       // 1) Deterministic pricing path
       if (pricingIntent) {
         aiReply = stripUrls(buildDeterministicPricingReply(businessSummary));

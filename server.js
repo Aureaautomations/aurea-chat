@@ -1024,10 +1024,10 @@ app.post("/chat", async (req, res) => {
     else {
       // Only booking-related fallbacks belong here
     if (ctaType !== "CHOOSE_TIME" && ctaType !== "BOOK_NOW" && ctaType !== "CONFIRM_BOOKING") {
-      aiReply = "If you’d like, leave your contact info and we’ll follow up.";
+      aiReply = 'Tap “Leave contact info” and the team will follow up.';
     
       return res.json({
-        reply: applyResponseSafetyFilter({ reply: aiReply, ctaType, businessSummary }),
+        reply: applyResponseSafetyFilter({ reply: aiReply, ctaType, ctaUrl, businessSummary }),
         conversationId: conversationId || null,
         route,
         ctaType,
@@ -1059,7 +1059,7 @@ app.post("/chat", async (req, res) => {
     }
 
     return res.json({
-      reply: applyResponseSafetyFilter({ reply: aiReply, ctaType, businessSummary }),
+      reply: applyResponseSafetyFilter({ reply: aiReply, ctaType, ctaUrl, businessSummary }),
       conversationId: conversationId || null,
       route,
       ctaType,

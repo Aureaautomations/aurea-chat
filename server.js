@@ -1083,9 +1083,14 @@ app.post("/chat", async (req, res) => {
     
   } catch (error) {
     console.error("OpenAI error:", error);
-    return res.status(500).json({
-      reply: "Something went wrong.",
-    });
+    
+      const safe = applyResponseSafetyFilter({
+        reply: "Something went wrong.",
+        ctaType: "BOOK_NOW",
+        businessSummary: null,
+      });
+      
+      return res.status(500).json({ reply: safe });
   }
 });
 

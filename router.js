@@ -246,7 +246,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
     return {
       job: JOBS.JOB_2,
       facts: mergedFacts,
-      cta: { type: "CHOOSE_TIME" },
+      cta: { type: "BOOK_NOW" },
       _routerBuild: ROUTER_BUILD,
     };
   }
@@ -274,7 +274,7 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
         ...mergedFacts,
         bookingIntent: true,
       },
-      cta: { type: "CHOOSE_TIME" },
+      cta: { type: "BOOK_NOW" },
       _routerBuild: ROUTER_BUILD,
     };
   }

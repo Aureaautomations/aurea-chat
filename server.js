@@ -1022,12 +1022,24 @@ app.post("/chat", async (req, res) => {
       
     // Everything else (keep your deterministic fallback for now)
     else {
-      // Only booking-related fallbacks belong here
+      
+    // Only booking-related fallbacks belong here
     if (ctaType !== "CHOOSE_TIME" && ctaType !== "BOOK_NOW" && ctaType !== "CONFIRM_BOOKING") {
       aiReply = 'Tap “Leave contact info” and the team will follow up.';
     
+      const filtered = applyResponseSafetyFilter({ reply: aiReply, ctaType, ctaUrl, businessSummary });
+    
+      if (filtered.changed) {
+        console.log("[SAFETY_FILTER_FIRED]", {
+          clientId: client?.clientId || clientId || null,
+          ctaType,
+          reasons: filtered.reasons,
+        });
+      }
+    
       return res.json({
-        reply: applyResponseSafetyFilter({ reply: aiReply, ctaType, ctaUrl, businessSummary }),
+        reply: filtered.text,
+
         conversationId: conversationId || null,
         route,
         ctaType,
@@ -1048,6 +1060,7 @@ app.post("/chat", async (req, res) => {
         services: businessSummary?.services ?? null,
       });
     }
+      
       const f = route?.facts || {};
       const day = f.desiredDay ? String(f.desiredDay) : null;
       const win = f.desiredTimeWindow ? String(f.desiredTimeWindow) : null;
@@ -1058,8 +1071,18 @@ app.post("/chat", async (req, res) => {
       else aiReply = `What day are you aiming for (today/tomorrow/this week), and do you prefer morning, afternoon, or evening?`;
     }
 
+    const filtered = applyResponseSafetyFilter({ reply: aiReply, ctaType, ctaUrl, businessSummary });
+
+    if (filtered.changed) {
+      console.log("[SAFETY_FILTER_FIRED]", {
+        clientId: client?.clientId || clientId || null,
+        ctaType,
+        reasons: filtered.reasons,
+      });
+    }
+
     return res.json({
-      reply: applyResponseSafetyFilter({ reply: aiReply, ctaType, ctaUrl, businessSummary }),
+      reply: filtered.text,
       conversationId: conversationId || null,
       route,
       ctaType,

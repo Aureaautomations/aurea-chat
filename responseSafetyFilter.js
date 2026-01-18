@@ -13,7 +13,8 @@ function containsContactCollection(text) {
     /\b(leave|drop|share|send)\s+(your\s+)?(phone|number|email)\b/.test(t) ||
     /\bwhat('?s| is)\s+your\s+(phone|number|email)\b/.test(t) ||
     /\b(can you|please)\s+(give|share|send)\s+(me\s+)?(your\s+)?(phone|number|email)\b/.test(t) ||
-    /\b(text|sms|email)\s+me\s+at\b/.test(t)
+    /\b(text|sms|email)\s+me\s+at\b/.test(t) ||
+    /\b(contact\s*info|your\s*contact\s*info|leave\s*(your\s*)?contact\s*info)\b/.test(t)
   );
 }
 
@@ -42,8 +43,13 @@ function containsCantFindLinkLanguage(text) {
 
 function containsPricingClaim(text) {
   const t = String(text || "").toLowerCase();
-  // Any hard $/price language
-  return /\$\s*\d|\b(pricing|price|cost|rates?)\b/.test(t);
+
+  // Hard indicators: dollar amounts, "from $", "only $", "$120", etc.
+  if (/\$\s*\d/.test(t)) return true;
+  if (/\b\d+\s*(dollars|cad|usd)\b/.test(t)) return true;
+  if (/\b(from|starting at|only)\s*\$?\s*\d/.test(t)) return true;
+
+  return false;
 }
 
 function containsHoursClaim(text) {

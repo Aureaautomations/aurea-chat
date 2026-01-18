@@ -3,6 +3,7 @@ require("dotenv").config();
 const { routeMessage, JOBS } = require("./router");
 const { getClientConfig, isOriginAllowed } = require("./clients");
 const { insertEventSafe } = require("./db");
+const { applyResponseSafetyFilter } = require("./responseSafetyFilter");
 
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -1026,7 +1027,7 @@ app.post("/chat", async (req, res) => {
       aiReply = "If you’d like, leave your contact info and we’ll follow up.";
     
       return res.json({
-        reply: aiReply,
+        reply: applyResponseSafetyFilter({ reply: aiReply, ctaType, businessSummary }),
         conversationId: conversationId || null,
         route,
         ctaType,
@@ -1058,7 +1059,7 @@ app.post("/chat", async (req, res) => {
     }
 
     return res.json({
-      reply: aiReply,
+      reply: applyResponseSafetyFilter({ reply: aiReply, ctaType, businessSummary }),
       conversationId: conversationId || null,
       route,
       ctaType,

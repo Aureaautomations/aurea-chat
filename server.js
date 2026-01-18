@@ -475,6 +475,11 @@ function detectContactRequest(text = "") {
   return /\b(call me|phone me|give me a call|can you call|talk to someone|speak to someone|contact me)\b/.test(t);
 }
 
+function detectAlreadyBooked(text = "") {
+  const t = String(text || "").toLowerCase();
+  return /\b(i\s*(already\s*)?(booked|scheduled)|booked it|i\s*booked|i\s*scheduled|appointment\s*(is|was)\s*(booked|scheduled)|i\s*made\s*an\s*appointment)\b/.test(t);
+}
+
 function getBookingHandoffSentence(client) {
   const label = (client && typeof client.bookingPlatformLabel === "string" && client.bookingPlatformLabel.trim())
     ? client.bookingPlatformLabel.trim()
@@ -986,11 +991,16 @@ app.post("/chat", async (req, res) => {
       
     // Job #2
     else if (route.job === JOBS.JOB_2) {
-      // Current stage: we do NOT schedule inside chat.
-      // Always hand off to booking platform via CTA.
-      aiReply = BOOKING_HANDOFF_SENTENCE;
+      // If they say they already booked, don't send them back to booking.
+      if (detectAlreadyBooked(latestTrimmed)) {
+        aiReply = "Perfect, then you’re all set. Want help with anything else before you go (services, pricing, or policies)?";
+      } else {
+        // Current stage: we do NOT schedule inside chat.
+        // Always hand off to booking platform via CTA.
+        aiReply = BOOKING_HANDOFF_SENTENCE;
+      }
     }
-
+  
     // Job #7 (deterministic — no OpenAI)
     else if (route.job === JOBS.JOB_7) {
       logEscalationEvent({

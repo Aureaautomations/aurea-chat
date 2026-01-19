@@ -81,45 +81,65 @@ function safeCtaInstruction(ctaType, ctaUrl) {
  */
 function applyResponseSafetyFilter({ reply, ctaType, ctaUrl, businessSummary }) {
   let text = normalizeText(reply);
-  const reasons = [];
   const original = text;
+  const reasons = [];
 
-  // 1) Strip/replace any in-chat contact capture language
-  if (containsContactCollection(text)) {
-    // If the CTA is LEAVE_CONTACT, keep it aligned.
-    // Otherwise, fall back to a safe generic next step that matches CTA.
-    text = safeCtaInstruction(ctaType, ctaUrl);
+function setText(newText, reason) {
+  const next = normalizeText(newText);
+  if (next && next !== text) {
+    text = next;
+    if (reason) reasons.push(reason);
+  } else if (reason) {
+    // Even if text ends up same, still track why we evaluated it
+    // (optional; remove if you only want reasons when changed)
+    reasons.push(reason);
   }
+}
 
-  // 2) Remove “I can’t find booking/contact” phrasing (even if true)
-  if (containsCantFindLinkLanguage(text)) {
-    // If CTA URL is missing, we still must not say "can't find".
-    // Give a neutral instruction that doesn't claim availability.
-    text = safeCtaInstruction(ctaType, ctaUrl);
-  }
+// 1) In-chat contact capture language
+if (containsContactCollection(text)) {
+  setText(safeCtaInstruction(ctaType, ctaUrl), "ASKS_FOR_CONTACT_IN_CHAT");
+}
 
-  // 3) Capability drift (email/text/call/reminders/booking confirmation)
-  if (containsCapabilityDrift(text)) {
-    text = safeCtaInstruction(ctaType, ctaUrl);
-  }
+// 2) “can’t find booking/contact”
+if (containsCantFindLinkLanguage(text)) {
+  setText(safeCtaInstruction(ctaType, ctaUrl), "CANT_FIND_BOOKING_OR_CONTACT");
+}
 
-  // 4) Hours hallucination guard (only allowed if BUSINESS_SUMMARY.hours exists)
-  const hasHours = !!(businessSummary && businessSummary.hours);
-  if (!hasHours && containsHoursClaim(text)) {
-    // Don’t claim hours. Redirect to booking CTA.
-    text = 'I don’t see hours listed on this page. ' + safeCtaInstruction(ctaType, ctaUrl);
-  }
+// 3) Capability drift (text/email/call/remind/booked/confirmed)
+if (containsCapabilityDrift(text)) {
+  setText(safeCtaInstruction(ctaType, ctaUrl), "CAPABILITY_DRIFT");
+}
 
-  // 5) Pricing hallucination guard (only allowed if BUSINESS_SUMMARY.pricing has items)
-  const hasPricing =
-    !!(businessSummary && Array.isArray(businessSummary.pricing) && businessSummary.pricing.length > 0);
+// 4) Hours guard: only allowed if BUSINESS_SUMMARY.hours exists
+const hasHours = !!(businessSummary && businessSummary.hours);
+if (!hasHours && containsHoursClaim(text)) {
+  setText(
+    'I don’t see hours listed on this page. ' + safeCtaInstruction(ctaType, ctaUrl),
+    "HOURS_WITHOUT_SOURCE"
+  );
+}
 
-  if (!hasPricing && containsPricingClaim(text)) {
-    // Don’t claim pricing. Offer a clean alternative.
-    text = 'I don’t see pricing listed on this page. What are you looking for—services, how it works, or booking?';
-  }
+// 5) Pricing guard: block numeric pricing only when pricing is missing
+const p = businessSummary ? businessSummary.pricing : null;
+const hasPricing =
+  (Array.isArray(p) && p.length > 0) ||
+  (typeof p === "string" && p.trim().length > 0) ||
+  (p && typeof p === "object" && Object.keys(p).length > 0);
 
-  return normalizeText(text);
+if (!hasPricing && containsPricingClaim(text)) {
+  setText(
+    'I don’t see pricing listed on this page. What are you looking for—services, how it works, or booking?',
+    "PRICING_WITHOUT_SOURCE"
+  );
+}
+
+return {
+  text: normalizeText(text),
+  changed: normalizeText(text) !== normalizeText(original),
+  reasons: reasons.filter(Boolean),
+};
 }
 
 module.exports = { applyResponseSafetyFilter };
+

@@ -970,7 +970,7 @@ app.post("/chat", async (req, res) => {
           "I can’t reschedule directly in chat. Use the contact button and the team can help.";
       } else {
         aiReply =
-          "I can’t reschedule directly in chat, and I don’t see a booking or contact link on this page.";
+           "I can’t reschedule directly in chat. Use the buttons below to book or to contact the team for help.";
       }
     }
       // 3) Normal Job 1 LLM response
@@ -1107,13 +1107,14 @@ app.post("/chat", async (req, res) => {
   } catch (error) {
     console.error("OpenAI error:", error);
     
-      const safe = applyResponseSafetyFilter({
-        reply: "Something went wrong.",
-        ctaType: "BOOK_NOW",
-        businessSummary: null,
-      });
-      
-      return res.status(500).json({ reply: safe });
+    const safe = applyResponseSafetyFilter({
+      reply: "Something went wrong.",
+      ctaType: "BOOK_NOW",
+      ctaUrl: null,
+      businessSummary: null,
+    });
+    
+    return res.status(500).json({ reply: safe.text });
   }
 });
 

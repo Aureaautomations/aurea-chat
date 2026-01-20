@@ -1110,8 +1110,21 @@ async function getSiteContextV2() {
       add("assistant", reply);
       pushToHistory("assistant", reply);
       
-      const primaryCtaType = d.ctaType || "BOOK_NOW";
-      const primaryUrl = resolveStrictCtaUrl(d, primaryCtaType);
+            // --- CTA: show ONLY when backend explicitly chose one ---
+      // Clear any existing CTA first (prevents stale CTA carrying forward)
+      const existing = document.getElementById("aurea-cta-wrap");
+      if (existing) existing.remove();
+
+      const hasCtaType = typeof d.ctaType === "string" && d.ctaType.trim();
+      const hasCtaUrl = typeof d.ctaUrl === "string" && d.ctaUrl.trim();
+
+      // If backend didn't choose a CTA (or intentionally hid it), show nothing.
+      if (!hasCtaType || !hasCtaUrl) {
+        return;
+      }
+
+      const primaryCtaType = d.ctaType.trim();
+      const primaryUrl = d.ctaUrl.trim();
 
       // Secondary CTA is DEBUG-ONLY (prod shows primary only)
       let secondaryCtaType = null;

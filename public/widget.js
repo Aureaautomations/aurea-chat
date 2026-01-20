@@ -15,7 +15,7 @@
   // - Prod: only primary CTA
   // - Dev: show both CTAs (primary + muted secondary)
   const DEBUG_SHOW_ALL_CTAS =
-    CLIENT_ID === "aurea" || CONFIG.debugShowAllCtas === true;
+    CONFIG.debugShowAllCtas === true;
   
   if (!CLIENT_ID) {
     console.error("[Aurea Widget] Missing window.AUREA_CONFIG.clientId — widget will not start.");

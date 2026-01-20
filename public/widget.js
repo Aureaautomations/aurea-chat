@@ -967,9 +967,9 @@ async function getSiteContextV2() {
 
     const bubble = document.createElement("div");
     setMessageContent(bubble, role, text);
-    if (role === "assistant") {
-      styleBookingLinks(bubble);
-    }
+    // V1: Do NOT auto-promote links to booking buttons.
+    // CTAs must come only from backend deterministic CTA.
+    // (We still allow links to be clickable via linkifyToHtml.)
     bubble.style.padding = "10px 14px";
     bubble.style.borderRadius = "14px";
     bubble.style.maxWidth = "82%";

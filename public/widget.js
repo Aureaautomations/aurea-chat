@@ -10,6 +10,12 @@
   const CLIENT_ID = (CONFIG.clientId || "").trim();
 
   const MODE = "floating"; // locked
+
+  // CTA debug gate
+  // - Prod: only primary CTA
+  // - Dev: show both CTAs (primary + muted secondary)
+  const DEBUG_SHOW_ALL_CTAS =
+    CLIENT_ID === "aurea" || CONFIG.debugShowAllCtas === true;
   
   if (!CLIENT_ID) {
     console.error("[Aurea Widget] Missing window.AUREA_CONFIG.clientId — widget will not start.");
@@ -842,8 +848,8 @@ async function getSiteContextV2() {
       if (existing) existing.remove();
     
       // If nothing to show, bail
-      const hasPrimary = primaryUrl && typeof primaryUrl === "string";
-      const hasSecondary = secondaryUrl && typeof secondaryUrl === "string";
+      const hasPrimary = typeof primaryUrl === "string" && primaryUrl.trim();
+      const hasSecondary = typeof secondaryUrl === "string" && secondaryUrl.trim();
       if (!hasPrimary && !hasSecondary) return;
     
       const wrap = document.createElement("div");
@@ -927,10 +933,16 @@ async function getSiteContextV2() {
         a.style.cursor = "pointer";
         a.style.userSelect = "none";
     
-        // Same style for both CTAs (V1)
-        a.style.background = "#111";
-        a.style.color = "#fff";
-        a.style.border = "1px solid #111";
+        // Styling: primary vs secondary (muted)
+        if (variant === "secondary") {
+          a.style.background = "#fff";
+          a.style.color = "#111";
+          a.style.border = "1px solid #ddd";
+        } else {
+          a.style.background = "#111";
+          a.style.color = "#fff";
+          a.style.border = "1px solid #111";
+        }
 
         a.addEventListener("mouseenter", () => (a.style.opacity = "0.85"));
         a.addEventListener("mouseleave", () => (a.style.opacity = "1"));
@@ -1100,12 +1112,23 @@ async function getSiteContextV2() {
       
       const primaryCtaType = d.ctaType || "BOOK_NOW";
       const primaryUrl = resolveStrictCtaUrl(d, primaryCtaType);
-      
-      // Always offer the other main action as secondary (V1)
-      const secondaryCtaType = primaryCtaType === "LEAVE_CONTACT" ? "BOOK_NOW" : "LEAVE_CONTACT";
-      const secondaryUrl = resolveStrictCtaUrl(d, secondaryCtaType);
-      
-      renderDeterministicCTA(primaryCtaType, primaryUrl, secondaryCtaType, secondaryUrl);
+
+      // Secondary CTA is DEBUG-ONLY (prod shows primary only)
+      let secondaryCtaType = null;
+      let secondaryUrl = null;
+
+      if (DEBUG_SHOW_ALL_CTAS) {
+        secondaryCtaType =
+          primaryCtaType === "LEAVE_CONTACT" ? "BOOK_NOW" : "LEAVE_CONTACT";
+        secondaryUrl = resolveStrictCtaUrl(d, secondaryCtaType);
+      }
+
+      renderDeterministicCTA(
+        primaryCtaType,
+        primaryUrl,
+        secondaryCtaType,
+        secondaryUrl
+      );
 
     } catch {
       removeTyping();

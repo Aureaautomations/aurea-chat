@@ -28,7 +28,7 @@ Your job is to help convert website visitors into booked appointments or qualifi
 How you should respond:
 - Be friendly, confident, and concise.
 - Ask 1 short clarifying question if needed.
-- Focus on next steps: booking, availability, pricing, services, and FAQs.
+- Focus on next steps: booking, pricing, services, and FAQs.
 - If the user is just browsing, offer a simple suggestion to book or leave contact info.
 - Never mention you are “just a language model”. You are Aurea, the assistant.
 - If you don’t know a detail (like exact pricing), say so and offer the best next step.
@@ -950,7 +950,7 @@ app.post("/chat", async (req, res) => {
           aiReply = `Hours: ${String(businessSummary.hours).trim()}\n\nDo you want to book, or ask about services?`;
         } else {
           aiReply =
-            "I don’t see hours listed on this page. If you tap Book now, you’ll see the latest availability there.";
+            "I don’t see hours listed on this page. To start booking, tap Book now.";
         }
       }
 
@@ -985,7 +985,7 @@ app.post("/chat", async (req, res) => {
         // Guard: never state hours unless BUSINESS_SUMMARY.hours is present
         if (!businessSummary?.hours && containsHoursClaim(aiReply)) {
           aiReply =
-            "I don’t see hours listed on this page. If you tap Book now, you’ll see the latest availability there.";
+           "I don’t see hours listed on this page. To start booking, tap Book now.";
         }
       }
     }

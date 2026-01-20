@@ -300,10 +300,12 @@ function routeMessage({ message, history, signals, channel = "widget" }) {
   }
 
   // 6) Job #1 Convert Visitor (default)
+  // V1: browse/info stays BOOK_NOW (soft handoff).
+  // Only pricing + afterLeadCapture should push LEAVE_CONTACT.
   const job1CtaType =
-  facts.afterLeadCapture || facts.browseIntent || RE.pricingIntent.test(text)
-    ? "LEAVE_CONTACT"
-    : "BOOK_NOW";
+    facts.afterLeadCapture || facts.pricingIntent
+      ? "LEAVE_CONTACT"
+      : "BOOK_NOW";
 
   return {
     job: JOBS.JOB_1,
